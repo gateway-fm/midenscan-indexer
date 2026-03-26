@@ -1,0 +1,24 @@
+## Build artifacts
+/target
+**/target
+
+## VCS
+.git
+.gitmodules
+.gitignore
+
+## Editor/OS files
+*.swp
+*.swo
+*.swn
+*.swm
+*.orig
+.DS_Store
+.vscode/
+.idea/
+
+## Cache
+**/*.rs.bk
+
+## Node leftovers (if any subdirs use it)
+node_modules/
