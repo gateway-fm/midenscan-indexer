@@ -1,7 +1,5 @@
 # Miden Indexer
 
-[![CI Checks](https://github.com/gateway-fm/midenscan-indexer/actions/workflows/checks.yml/badge.svg)](https://github.com/gateway-fm/midenscan-indexer/actions/workflows/checks.yml)
-[![Release Status](https://github.com/gateway-fm/midenscan-indexer/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/gateway-fm/midenscan-indexer/actions/workflows/build-and-release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Miden Indexer** is a blockchain data indexing service for the [Miden](https://github.com/0xPolygonMiden/miden-node) ecosystem. It probes the Miden Node for new blocks, processes them, and stores the relevant data (accounts, notes, transactions, nullifiers) in a PostgreSQL database.
