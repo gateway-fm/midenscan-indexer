@@ -239,7 +239,6 @@ impl From<NoteType> for DatabaseMidenNoteType {
     fn from(note_type: NoteType) -> Self {
         match note_type {
             NoteType::Private => DatabaseMidenNoteType::Private,
-            NoteType::Encrypted => DatabaseMidenNoteType::Encrypted,
             NoteType::Public => DatabaseMidenNoteType::Public,
         }
     }

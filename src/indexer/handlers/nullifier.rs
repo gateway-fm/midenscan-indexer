@@ -1,7 +1,7 @@
 use crate::db;
 use crate::utils;
 use anyhow::Result;
-use miden_protocol::utils::Serializable;
+use miden_protocol::crypto::utils::Serializable;
 
 pub async fn nullifier_handler(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,

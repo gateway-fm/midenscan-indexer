@@ -3,7 +3,7 @@ use miden_node_proto::generated::{
     blockchain::BlockNumber,
     rpc::{api_client::ApiClient, RpcStatus},
 };
-use miden_protocol::{block::ProvenBlock, utils::Deserializable};
+use miden_protocol::{block::ProvenBlock, crypto::utils::Deserializable};
 use std::time::Duration;
 use tokio::time::timeout;
 
