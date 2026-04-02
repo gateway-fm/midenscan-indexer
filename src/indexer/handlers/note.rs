@@ -4,6 +4,7 @@ use anyhow::Result;
 use miden_protocol::{
     asset::Asset::{Fungible, NonFungible},
     crypto::utils::Serializable,
+    transaction::OutputNote,
 };
 use miden_standards::note::NetworkAccountTarget;
 use std::collections::HashMap;
@@ -26,7 +27,7 @@ pub async fn note_handler(
         let note_metadata_tag: u32 = note_metadata.tag().into();
         let note_sender = utils::format::account_id_to_bech32(&note_metadata.sender());
 
-        let database_note = db::models::DatabaseNote {
+        let mut database_note = db::models::DatabaseNote {
             note_id: note_id.clone(),
 
             recipient,
@@ -54,15 +55,20 @@ pub async fn note_handler(
                 0,
             ),
         };
-        /*
-        if let OutputNote::Full(note) = output_note {
+        if let OutputNote::Public(public_note) = output_note {
+            let note = public_note.as_note();
             database_note.nullifier = Some(note.nullifier().to_bytes().to_vec());
             let script_code = format!("{}", note.script());
             database_note.script_code = Some(script_code);
-            database_note.inputs =
-                Some(note.inputs().values().iter().map(|v| v.as_canonical_u64()).collect());
+            database_note.inputs = Some(
+                note.recipient()
+                    .storage()
+                    .items()
+                    .iter()
+                    .map(|v| v.as_canonical_u64())
+                    .collect(),
+            );
         }
-        */
         database_notes.push(database_note);
         if let Some(note_tag) = database_note_tags.get_mut(&note_metadata_tag) {
             note_tag.number_of_notes += 1;
