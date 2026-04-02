@@ -117,11 +117,13 @@ pub async fn account_handler(
                     }
                 }
 
-                database_account_update.nonce_delta = Some(account_delta.nonce_delta().as_canonical_u64());
+                database_account_update.nonce_delta =
+                    Some(account_delta.nonce_delta().as_canonical_u64());
 
                 let account_delta_vault = account_delta.vault();
                 for (faucet_id, amount) in account_delta_vault.fungible().iter() {
-                    let faucet_id_prefix_formatted = faucet_id.faucet_id().prefix().to_bytes().to_vec();
+                    let faucet_id_prefix_formatted =
+                        faucet_id.faucet_id().prefix().to_bytes().to_vec();
 
                     database_account_vault_assets_changes.push(
                         db::models::DatabaseAccountVaultAsset {
