@@ -3,7 +3,7 @@ use crate::utils;
 use anyhow::Result;
 use miden_protocol::{
     account::{delta::AccountUpdateDetails, Account, NonFungibleDeltaAction},
-    utils::Serializable,
+    crypto::utils::Serializable,
     PrettyPrint,
 };
 use miden_standards::account::faucets::BasicFungibleFaucet;
@@ -109,27 +109,28 @@ pub async fn account_handler(
                             faucet_id_prefix: account_id_prefix,
                             symbol: None,
                             decimals: Some(basic_fungible_faucet.decimals()),
-                            max_supply: Some(basic_fungible_faucet.max_supply().as_int()),
+                            max_supply: Some(basic_fungible_faucet.max_supply().as_canonical_u64()),
                         };
-                        if let Ok(token_symbol_str) = basic_fungible_faucet.symbol().to_string() {
-                            db_acc.symbol = Some(token_symbol_str);
-                        }
+                        let token_symbol_str = basic_fungible_faucet.symbol().to_string();
+                        db_acc.symbol = Some(token_symbol_str);
                         database_fungible_faucet_accounts.push(db_acc);
                     }
                 }
 
-                database_account_update.nonce_delta = Some(account_delta.nonce_delta().into());
+                database_account_update.nonce_delta =
+                    Some(account_delta.nonce_delta().as_canonical_u64());
 
                 let account_delta_vault = account_delta.vault();
                 for (faucet_id, amount) in account_delta_vault.fungible().iter() {
-                    let faucet_id_prefix_formatted = faucet_id.prefix().to_bytes().to_vec();
+                    let faucet_id_prefix_formatted =
+                        faucet_id.faucet_id().prefix().to_bytes().to_vec();
 
                     database_account_vault_assets_changes.push(
                         db::models::DatabaseAccountVaultAsset {
                             account_vault_asset_id: format!(
                                 "{}_{}",
                                 account_bech,
-                                faucet_id.prefix().to_hex(),
+                                faucet_id.faucet_id().prefix().to_hex(),
                             ),
                             account_bech: account_bech.clone(),
                             faucet_id_prefix: faucet_id_prefix_formatted,
@@ -141,7 +142,7 @@ pub async fn account_handler(
                     account_delta_vault.non_fungible().iter()
                 {
                     let faucet_id_prefix_formatted =
-                        non_fungible_asset.faucet_id_prefix().to_bytes().to_vec();
+                        non_fungible_asset.faucet_id().to_bytes().to_vec();
                     let amount: i64 = match non_fungible_delta {
                         NonFungibleDeltaAction::Add => 1,
                         NonFungibleDeltaAction::Remove => -1,
@@ -151,7 +152,7 @@ pub async fn account_handler(
                             account_vault_asset_id: format!(
                                 "{}_{}",
                                 account_bech,
-                                non_fungible_asset.faucet_id_prefix().to_hex(),
+                                non_fungible_asset.faucet_id().to_hex(),
                             ),
                             account_bech: account_bech.clone(),
                             faucet_id_prefix: faucet_id_prefix_formatted,
@@ -199,14 +200,14 @@ pub async fn account_handler(
                             "{}_{}_{}",
                             account_bech,
                             slot_id_hex,
-                            storage_slot_map_key.inner().to_hex(),
+                            storage_slot_map_key.to_hex(),
                         );
                         let database_account_storage_slot_map =
                             db::models::DatabaseAccountStorageSlotMap {
                                 account_storage_slot_map_id: account_storage_slot_map_id.clone(),
                                 account_bech: account_bech.clone(),
                                 slot_index: slot_name.clone(),
-                                key: storage_slot_map_key.inner().as_bytes().to_vec(),
+                                key: storage_slot_map_key.as_bytes().to_vec(),
                                 value: storage_slot_map_value.to_bytes(),
                                 last_updated_at_block_number: block.header().block_num().as_u32(),
                                 last_updated_at_account_update_id: account_update_id.clone(),

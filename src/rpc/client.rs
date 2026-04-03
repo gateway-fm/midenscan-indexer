@@ -3,7 +3,7 @@ use miden_node_proto::generated::{
     blockchain::BlockNumber,
     rpc::{api_client::ApiClient, RpcStatus},
 };
-use miden_protocol::{block::ProvenBlock, utils::Deserializable};
+use miden_protocol::{block::ProvenBlock, crypto::utils::Deserializable};
 use std::time::Duration;
 use tokio::time::timeout;
 
@@ -30,7 +30,7 @@ impl Rpc {
             Ok(Err(err)) => Err(err),
 
             // ───── wall-clock hit 20 s ────────────────────────────────────────
-            Err(_) => Err(anyhow::anyhow!("Block data call timeout")),
+            Err(_) => Err(crate::rpc::error::RpcError::Timeout("get_block_by_number").into()),
         }
     }
 
@@ -43,7 +43,7 @@ impl Rpc {
             Ok(Err(err)) => Err(err),
 
             // ───── wall-clock hit 20 s ────────────────────────────────────────
-            Err(_) => Err(anyhow::anyhow!("Status call timeout")),
+            Err(_) => Err(crate::rpc::error::RpcError::Timeout("get_status").into()),
         }
     }
 
@@ -63,7 +63,7 @@ impl Rpc {
                 ))),
             }
         } else {
-            Err(anyhow::anyhow!("Block data is missing from the response"))
+            Err(crate::rpc::error::RpcError::NotFound(block_num).into())
         }
     }
 

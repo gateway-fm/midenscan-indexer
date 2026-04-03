@@ -3,8 +3,8 @@ use crate::utils;
 use anyhow::Result;
 use miden_protocol::{
     asset::Asset::{Fungible, NonFungible},
+    crypto::utils::Serializable,
     transaction::OutputNote,
-    utils::Serializable,
 };
 use miden_standards::note::NetworkAccountTarget;
 use std::collections::HashMap;
@@ -20,8 +20,8 @@ pub async fn note_handler(
     for (block_note_index, output_note) in block.body().output_notes() {
         let note_metadata = output_note.metadata();
         let recipient: Option<Vec<u8>> = output_note
-            .recipient_digest()
-            .map(|value| value.as_bytes().to_vec());
+            .recipient()
+            .map(|value| value.to_bytes().to_vec());
 
         let note_id = output_note.id().as_bytes().to_vec();
         let note_metadata_tag: u32 = note_metadata.tag().into();
@@ -34,7 +34,7 @@ pub async fn note_handler(
             sender: note_sender,
             note_type: db::models::DatabaseMidenNoteType::from(note_metadata.note_type()),
             note_tag: note_metadata_tag,
-            note_aux: note_metadata.attachment().content().to_word()[0].as_int(),
+            note_aux: note_metadata.attachment().content().to_word()[0].as_canonical_u64(),
             is_network: note_metadata.attachment().attachment_scheme()
                 == NetworkAccountTarget::ATTACHMENT_SCHEME,
 
@@ -55,12 +55,19 @@ pub async fn note_handler(
                 0,
             ),
         };
-        if let OutputNote::Full(note) = output_note {
+        if let OutputNote::Public(public_note) = output_note {
+            let note = public_note.as_note();
             database_note.nullifier = Some(note.nullifier().to_bytes().to_vec());
             let script_code = format!("{}", note.script());
             database_note.script_code = Some(script_code);
-            database_note.inputs =
-                Some(note.inputs().values().iter().map(|v| v.as_int()).collect());
+            database_note.inputs = Some(
+                note.recipient()
+                    .storage()
+                    .items()
+                    .iter()
+                    .map(|v| v.as_canonical_u64())
+                    .collect(),
+            );
         }
         database_notes.push(database_note);
         if let Some(note_tag) = database_note_tags.get_mut(&note_metadata_tag) {
@@ -75,7 +82,7 @@ pub async fn note_handler(
 
         if let Some(note_assets) = output_note.assets() {
             for asset in note_assets.iter() {
-                let faucet_id_prefix = asset.faucet_id_prefix().to_bytes().to_vec();
+                let faucet_id_prefix = asset.faucet_id().to_bytes().to_vec();
                 let amount: u64 = match asset {
                     Fungible(asset) => asset.amount(),
                     NonFungible(_) => 1,
@@ -84,7 +91,7 @@ pub async fn note_handler(
                     note_asset_id: format!(
                         "{}_{}",
                         output_note.id().to_hex(),
-                        asset.faucet_id_prefix().to_hex(),
+                        asset.faucet_id().to_hex(),
                     ),
                     note_id: note_id.clone(),
                     faucet_id_prefix,

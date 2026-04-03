@@ -14,7 +14,16 @@ pub async fn start() {
         match run_handlers().await {
             Ok(_) => {}
             Err(e) => {
-                error!("Error: {}", e);
+                if let Some(rpc_error) = e.downcast_ref::<rpc::error::RpcError>() {
+                    match rpc_error {
+                        rpc::error::RpcError::NotFound(block_number) => {
+                            info!("Waiting for next block: {}", block_number);
+                        }
+                        _ => error!("RPC Error: {}", e),
+                    }
+                } else {
+                    error!("Error: {}", e);
+                }
                 tokio::time::sleep(std::time::Duration::from_millis(500)).await;
             }
         }
