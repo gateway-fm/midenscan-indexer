@@ -1,7 +1,6 @@
 use crate::db;
 use crate::utils;
 use anyhow::Result;
-use miden_protocol::crypto::utils::Serializable;
 
 pub async fn nullifier_handler(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -14,7 +13,7 @@ pub async fn nullifier_handler(
         // DEVNOTE: don't expect for there to be that many nullifiers in a single block
         let block_nullifier_index = u32::try_from(block_nullifier_index_usize)?;
         database_nullifiers.push(db::models::DatabaseNullifier {
-            nullifier: nullifier.to_bytes().to_vec(),
+            nullifier: nullifier.as_bytes().to_vec(),
             nullifier_index: block_nullifier_index,
             block_number: block.header().block_num().as_u32(),
             timestamp: block.header().timestamp(),
