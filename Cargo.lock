@@ -2243,7 +2243,7 @@ dependencies = [
 
 [[package]]
 name = "midenscan-indexer"
-version = "0.13.2"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "axum 0.7.9",
