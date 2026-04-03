@@ -1,7 +1,6 @@
 use crate::db;
 use crate::utils;
 use anyhow::Result;
-use miden_protocol::crypto::utils::Serializable;
 
 pub async fn transaction_handler(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -58,7 +57,7 @@ pub async fn transaction_handler(
             database_transaction_input_notes.push(db::models::DatabaseTransactionInputNote {
                 transaction_input_note_id,
                 transaction_id: transaction_header.id().as_bytes().to_vec(),
-                nullifier: input_note.to_bytes().to_vec(),
+                nullifier: input_note.nullifier().as_bytes().to_vec(),
             })
         }
         for output_note in transaction_header.output_notes() {
@@ -70,7 +69,7 @@ pub async fn transaction_handler(
             database_transaction_output_notes.push(db::models::DatabaseTransactionOutputNote {
                 transaction_output_note_id,
                 transaction_id: transaction_header.id().as_bytes().to_vec(),
-                note_id: output_note.to_bytes().to_vec(),
+                note_id: output_note.id().as_bytes().to_vec(),
             })
         }
     }
