@@ -21,7 +21,7 @@ pub async fn note_handler(
         let note_metadata = output_note.metadata();
         let recipient: Option<Vec<u8>> = output_note
             .recipient()
-            .map(|value| value.to_bytes().to_vec());
+            .map(|value| value.digest().as_bytes().to_vec());
 
         let note_id = output_note.id().as_bytes().to_vec();
         let note_metadata_tag: u32 = note_metadata.tag().into();
@@ -57,7 +57,7 @@ pub async fn note_handler(
         };
         if let OutputNote::Public(public_note) = output_note {
             let note = public_note.as_note();
-            database_note.nullifier = Some(note.nullifier().to_bytes().to_vec());
+            database_note.nullifier = Some(note.nullifier().as_bytes().to_vec());
             let script_code = format!("{}", note.script());
             database_note.script_code = Some(script_code);
             database_note.inputs = Some(

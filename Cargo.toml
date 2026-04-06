@@ -1,6 +1,6 @@
 [package]
 name = "midenscan-indexer"
-version = "0.13.2"
+version = "0.14.1"
 edition = "2021"
 description = "Blockchain data indexing service for Miden"
 authors = ["Gateway.fm"]
