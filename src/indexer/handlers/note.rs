@@ -82,7 +82,7 @@ pub async fn note_handler(
 
         if let Some(note_assets) = output_note.assets() {
             for asset in note_assets.iter() {
-                let faucet_id_prefix = asset.faucet_id().to_bytes().to_vec();
+                let faucet_id_prefix = asset.faucet_id().prefix().to_bytes().to_vec();
                 let amount: u64 = match asset {
                     Fungible(asset) => asset.amount(),
                     NonFungible(_) => 1,
