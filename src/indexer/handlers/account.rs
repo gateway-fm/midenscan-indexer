@@ -142,7 +142,7 @@ pub async fn account_handler(
                     account_delta_vault.non_fungible().iter()
                 {
                     let faucet_id_prefix_formatted =
-                        non_fungible_asset.faucet_id().to_bytes().to_vec();
+                        non_fungible_asset.faucet_id().prefix().to_bytes().to_vec();
                     let amount: i64 = match non_fungible_delta {
                         NonFungibleDeltaAction::Add => 1,
                         NonFungibleDeltaAction::Remove => -1,
