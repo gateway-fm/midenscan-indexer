@@ -34,6 +34,7 @@ pub struct DatabaseAccount {
     pub account_type: Option<DatabaseMidenAccountType>,
     pub storage_mode: DatabaseMidenAccountStorageMode,
     pub code: Option<String>,
+    pub code_size: u64,
     pub code_procedure_roots: Option<Vec<String>>,
 
     pub deployed_at_block_number: u32,

@@ -20,6 +20,7 @@ pub async fn insert_or_ignore_accounts(
                 account_type,
                 storage_mode,
                 code,
+                code_size,
                 code_procedure_roots,
                 deployed_at_block_number,
                 deployed_at_timestamp,
@@ -34,6 +35,7 @@ pub async fn insert_or_ignore_accounts(
             .push_bind(account.account_type)
             .push_bind(account.storage_mode)
             .push_bind(account.code)
+            .push_bind(BigDecimal::from(account.code_size))
             .push_bind(account.code_procedure_roots)
             .push_bind(BigDecimal::from(account.deployed_at_block_number))
             .push_bind(BigDecimal::from(account.deployed_at_timestamp))
