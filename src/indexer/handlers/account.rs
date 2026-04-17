@@ -49,6 +49,7 @@ pub async fn account_handler(
             storage_mode: db::models::DatabaseMidenAccountStorageMode::Private,
             code: None,
             code_procedure_roots: None,
+            code_size: 0,
 
             deployed_at_block_number: block.header().block_num().as_u32(),
             deployed_at_timestamp: block.header().timestamp(),
@@ -93,6 +94,7 @@ pub async fn account_handler(
                         );
 
                     database_account.code = Some(format!("{}", PrettyPrint::render(code)));
+                    database_account.code_size = code.get_size_hint() as u64;
 
                     let mut account_code_procedure_roots: Vec<String> = Vec::new();
                     for account_code_procedure in code.procedures() {
