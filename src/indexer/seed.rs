@@ -32,29 +32,30 @@ pub async fn seed_standard_components(db: &db::Database) -> Result<()> {
 }
 
 fn build_standard_components() -> Vec<DatabaseAccountVerifiedComponent> {
-    let variants: &[(&str, StandardAccountComponent)] = &[
-        ("BasicWallet", StandardAccountComponent::BasicWallet),
-        ("BasicFungibleFaucet", StandardAccountComponent::BasicFungibleFaucet),
-        ("NetworkFungibleFaucet", StandardAccountComponent::NetworkFungibleFaucet),
-        ("AuthSingleSig", StandardAccountComponent::AuthSingleSig),
-        ("AuthSingleSigAcl", StandardAccountComponent::AuthSingleSigAcl),
-        ("AuthMultisig", StandardAccountComponent::AuthMultisig),
-        ("AuthMultisigPsm", StandardAccountComponent::AuthMultisigPsm),
-        ("AuthNoAuth", StandardAccountComponent::AuthNoAuth),
+    let variants: &[(AccountComponentInterface, StandardAccountComponent)] = &[
+        (AccountComponentInterface::BasicWallet, StandardAccountComponent::BasicWallet),
+        (AccountComponentInterface::BasicFungibleFaucet, StandardAccountComponent::BasicFungibleFaucet),
+        (AccountComponentInterface::NetworkFungibleFaucet, StandardAccountComponent::NetworkFungibleFaucet),
+        (AccountComponentInterface::AuthSingleSig, StandardAccountComponent::AuthSingleSig),
+        (AccountComponentInterface::AuthSingleSigAcl, StandardAccountComponent::AuthSingleSigAcl),
+        (AccountComponentInterface::AuthMultisig, StandardAccountComponent::AuthMultisig),
+        (AccountComponentInterface::AuthMultisigPsm, StandardAccountComponent::AuthMultisigPsm),
+        (AccountComponentInterface::AuthNoAuth, StandardAccountComponent::AuthNoAuth),
     ];
 
     variants
         .iter()
-        .map(|(name, component)| {
+        .map(|(interface, component)| {
+            let name = interface.name();
             let id = Uuid::new_v5(&MIDENSCAN_COMPONENTS_NAMESPACE, name.as_bytes());
             let procedure_digests: Vec<String> = component
                 .procedure_digests()
                 .map(|word| word.to_hex())
                 .collect();
-        
+
             DatabaseAccountVerifiedComponent {
                 id,
-                name: name.to_string(),
+                name,
                 procedure_digests,
                 rust: None,
                 masm: None,
