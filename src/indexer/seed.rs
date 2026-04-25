@@ -68,6 +68,11 @@ fn build_standard_components() -> Vec<DatabaseAccountVerifiedComponent> {
         (AccountComponentInterface::AuthNoAuth, StandardAccountComponent::AuthNoAuth),
     ];
 
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_else(|_| std::time::Duration::from_secs(0))
+        .as_secs() as i64;
+
     variants
         .iter()
         .map(|(interface, component)| {
@@ -84,7 +89,7 @@ fn build_standard_components() -> Vec<DatabaseAccountVerifiedComponent> {
                 procedure_digests,
                 rust: None,
                 masm: None,
-                timestamp: 0,
+                timestamp: now,
                 is_custom: false,
             }
         })
