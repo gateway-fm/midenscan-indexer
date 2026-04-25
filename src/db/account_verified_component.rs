@@ -30,3 +30,14 @@ pub async fn insert_standard_components(
 
     Ok(())
 }
+
+pub async fn get_existing_procedure_digests(
+    db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+) -> Result<Vec<Vec<String>>, sqlx::Error> {
+    let rows: Vec<(Vec<String>,)> = sqlx::query_as(
+        "SELECT procedure_digests FROM account_verified_component WHERE is_custom = false",
+    )
+    .fetch_all(&mut **db_tx)
+    .await?;
+    Ok(rows.into_iter().map(|(digests,)| digests).collect())
+}

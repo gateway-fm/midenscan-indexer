@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use anyhow::Result;
 use log::info;
 use miden_standards::account::components::StandardAccountComponent;
@@ -21,13 +23,36 @@ pub async fn seed_standard_components(db: &db::Database) -> Result<()> {
     db.execute_transaction(|db_tx| {
         let components = components.clone();
         Box::pin(async move {
-            db::account_verified_component::insert_standard_components(db_tx, components).await?;
+            let existing_digests =
+                db::account_verified_component::get_existing_procedure_digests(db_tx).await?;
+            let existing_sets: Vec<BTreeSet<&str>> = existing_digests
+                .iter()
+                .map(|digests| digests.iter().map(|s| s.as_str()).collect())
+                .collect();
+            let new_components: Vec<_> = components
+                .into_iter()
+                .filter(|c| {
+                    let candidate: BTreeSet<&str> =
+                        c.procedure_digests.iter().map(|s| s.as_str()).collect();
+                    !existing_sets.contains(&candidate)
+                })
+                .collect();
+    
+            let new_component_names = new_components.iter().map(|c| c.name.clone()).collect::<Vec<_>>();
+            db::account_verified_component::insert_standard_components(db_tx, new_components)
+                .await?;
+
+            if !new_component_names.is_empty() {
+                for component in new_component_names {
+                    info!("Seeded standard component: {}", component);
+                }
+            }
             Ok(())
         })
     })
     .await?;
 
-    info!("Seeded {} standard account components", count);
+    info!("Seeded {} standard account components total", count);
     Ok(())
 }
 
