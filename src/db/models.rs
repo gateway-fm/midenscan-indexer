@@ -259,3 +259,14 @@ impl From<StorageSlotType> for DatabaseAccountStorageSlotType {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct DatabaseAccountVerifiedComponent {
+    pub id: uuid::Uuid,
+    pub name: String,
+    pub procedure_digests: Vec<String>,
+    pub rust: Option<String>,
+    pub masm: Option<String>,
+    pub timestamp: i64,
+    pub is_custom: bool,
+}
