@@ -15,6 +15,9 @@ pub async fn start() {
     if let Err(e) = seed::seed_standard_components(&db).await {
         error!("Failed to seed standard account components: {}", e);
     }
+    if let Err(e) = seed::seed_standard_notes(&db).await {
+        error!("Failed to seed standard note scripts: {}", e);
+    }
 
     loop {
         match run_handlers().await {

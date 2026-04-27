@@ -9,6 +9,10 @@ use miden_protocol::{
 use miden_standards::note::NetworkAccountTarget;
 use std::collections::HashMap;
 
+fn normalize_script_root(script_root: String) -> String {
+    script_root.trim().trim_start_matches("0x").to_ascii_lowercase()
+}
+
 pub async fn note_handler(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     block: miden_protocol::block::ProvenBlock,
@@ -40,6 +44,7 @@ pub async fn note_handler(
 
             // Only for full notes, added later
             nullifier: None,
+            script_root: None,
             script_code: None,
             inputs: None,
 
@@ -58,6 +63,7 @@ pub async fn note_handler(
         if let OutputNote::Public(public_note) = output_note {
             let note = public_note.as_note();
             database_note.nullifier = Some(note.nullifier().as_bytes().to_vec());
+            database_note.script_root = Some(normalize_script_root(note.script().root().to_hex()));
             let script_code = format!("{}", note.script());
             database_note.script_code = Some(script_code);
             database_note.inputs = Some(
@@ -105,4 +111,18 @@ pub async fn note_handler(
     db::note_tag::insert_note_tags(db_tx, database_note_tags.values().cloned().collect()).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_script_root;
+    use miden_standards::note::StandardNote;
+
+    #[test]
+    fn script_root_is_formatted_as_lowercase_hex_without_prefix() {
+        let script_root = normalize_script_root(StandardNote::P2ID.script_root().to_hex());
+
+        assert!(!script_root.starts_with("0x"));
+        assert_eq!(script_root, script_root.to_ascii_lowercase());
+    }
 }

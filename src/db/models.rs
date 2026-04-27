@@ -138,6 +138,7 @@ pub struct DatabaseNote {
     pub note_tag: u32,
     pub note_aux: u64,
     pub nullifier: Option<Vec<u8>>,
+    pub script_root: Option<String>,
     pub script_code: Option<String>,
     pub inputs: Option<Vec<u64>>,
     pub is_network: bool,
@@ -265,6 +266,17 @@ pub struct DatabaseAccountVerifiedComponent {
     pub id: uuid::Uuid,
     pub name: String,
     pub procedure_digests: Vec<String>,
+    pub rust: Option<String>,
+    pub masm: Option<String>,
+    pub timestamp: i64,
+    pub is_custom: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct DatabaseNoteVerifiedScript {
+    pub id: uuid::Uuid,
+    pub name: String,
+    pub script_root: String,
     pub rust: Option<String>,
     pub masm: Option<String>,
     pub timestamp: i64,
