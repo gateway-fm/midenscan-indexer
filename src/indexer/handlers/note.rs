@@ -10,7 +10,10 @@ use miden_standards::note::NetworkAccountTarget;
 use std::collections::HashMap;
 
 fn normalize_script_root(script_root: String) -> String {
-    script_root.trim().trim_start_matches("0x").to_ascii_lowercase()
+    script_root
+        .trim()
+        .trim_start_matches("0x")
+        .to_ascii_lowercase()
 }
 
 pub async fn note_handler(

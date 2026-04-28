@@ -12,17 +12,22 @@ use crate::db::models::DatabaseAccountVerifiedComponent;
 use crate::db::models::DatabaseNoteVerifiedScript;
 
 fn normalize_script_root(script_root: String) -> String {
-    script_root.trim().trim_start_matches("0x").to_ascii_lowercase()
+    script_root
+        .trim()
+        .trim_start_matches("0x")
+        .to_ascii_lowercase()
 }
 
 /// A fixed UUID v5 namespace for midenscan standard account components.
 /// Generated once and kept stable so re-runs produce the same IDs.
-const MIDENSCAN_COMPONENTS_NAMESPACE: Uuid =
-    Uuid::from_bytes([0x6b, 0xa7, 0xb8, 0x14, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8]);
+const MIDENSCAN_COMPONENTS_NAMESPACE: Uuid = Uuid::from_bytes([
+    0x6b, 0xa7, 0xb8, 0x14, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8,
+]);
 
 /// A fixed UUID v5 namespace for midenscan standard notes.
-const MIDENSCAN_NOTES_NAMESPACE: Uuid =
-    Uuid::from_bytes([0x75, 0x9b, 0x24, 0x12, 0x11, 0x95, 0x4d, 0x4d, 0x95, 0x6d, 0x6f, 0x2a, 0x78, 0x16, 0x19, 0x44]);
+const MIDENSCAN_NOTES_NAMESPACE: Uuid = Uuid::from_bytes([
+    0x75, 0x9b, 0x24, 0x12, 0x11, 0x95, 0x4d, 0x4d, 0x95, 0x6d, 0x6f, 0x2a, 0x78, 0x16, 0x19, 0x44,
+]);
 
 pub async fn seed_standard_components(db: &db::Database) -> Result<()> {
     info!("Seeding standard account components...");
@@ -47,8 +52,11 @@ pub async fn seed_standard_components(db: &db::Database) -> Result<()> {
                     !existing_sets.contains(&candidate)
                 })
                 .collect();
-    
-            let new_component_names = new_components.iter().map(|c| c.name.clone()).collect::<Vec<_>>();
+
+            let new_component_names = new_components
+                .iter()
+                .map(|c| c.name.clone())
+                .collect::<Vec<_>>();
             db::account_verified_component::insert_standard_components(db_tx, new_components)
                 .await?;
 
@@ -92,14 +100,38 @@ pub async fn seed_standard_notes(db: &db::Database) -> Result<()> {
 
 fn build_standard_components() -> Vec<DatabaseAccountVerifiedComponent> {
     let variants: &[(AccountComponentInterface, StandardAccountComponent)] = &[
-        (AccountComponentInterface::BasicWallet, StandardAccountComponent::BasicWallet),
-        (AccountComponentInterface::BasicFungibleFaucet, StandardAccountComponent::BasicFungibleFaucet),
-        (AccountComponentInterface::NetworkFungibleFaucet, StandardAccountComponent::NetworkFungibleFaucet),
-        (AccountComponentInterface::AuthSingleSig, StandardAccountComponent::AuthSingleSig),
-        (AccountComponentInterface::AuthSingleSigAcl, StandardAccountComponent::AuthSingleSigAcl),
-        (AccountComponentInterface::AuthMultisig, StandardAccountComponent::AuthMultisig),
-        (AccountComponentInterface::AuthMultisigPsm, StandardAccountComponent::AuthMultisigPsm),
-        (AccountComponentInterface::AuthNoAuth, StandardAccountComponent::AuthNoAuth),
+        (
+            AccountComponentInterface::BasicWallet,
+            StandardAccountComponent::BasicWallet,
+        ),
+        (
+            AccountComponentInterface::BasicFungibleFaucet,
+            StandardAccountComponent::BasicFungibleFaucet,
+        ),
+        (
+            AccountComponentInterface::NetworkFungibleFaucet,
+            StandardAccountComponent::NetworkFungibleFaucet,
+        ),
+        (
+            AccountComponentInterface::AuthSingleSig,
+            StandardAccountComponent::AuthSingleSig,
+        ),
+        (
+            AccountComponentInterface::AuthSingleSigAcl,
+            StandardAccountComponent::AuthSingleSigAcl,
+        ),
+        (
+            AccountComponentInterface::AuthMultisig,
+            StandardAccountComponent::AuthMultisig,
+        ),
+        (
+            AccountComponentInterface::AuthMultisigPsm,
+            StandardAccountComponent::AuthMultisigPsm,
+        ),
+        (
+            AccountComponentInterface::AuthNoAuth,
+            StandardAccountComponent::AuthNoAuth,
+        ),
     ];
 
     let now = std::time::SystemTime::now()
@@ -174,7 +206,10 @@ mod tests {
         let notes = build_standard_notes();
 
         assert_eq!(notes.len(), 5);
-        let names = notes.iter().map(|note| note.name.as_str()).collect::<BTreeSet<_>>();
+        let names = notes
+            .iter()
+            .map(|note| note.name.as_str())
+            .collect::<BTreeSet<_>>();
         assert_eq!(names.len(), 5);
 
         let script_roots = notes

@@ -4,7 +4,10 @@ use anyhow::Result;
 use sqlx::QueryBuilder;
 
 fn canonicalize_script_root(script_root: String) -> String {
-    script_root.trim().trim_start_matches("0x").to_ascii_lowercase()
+    script_root
+        .trim()
+        .trim_start_matches("0x")
+        .to_ascii_lowercase()
 }
 
 pub async fn upsert_standard_notes(

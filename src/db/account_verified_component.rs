@@ -31,9 +31,8 @@ pub async fn insert_standard_components(
             .push_bind(component.timestamp)
             .push_bind(component.is_custom);
     });
-    query_builder.push(
-        " ON CONFLICT (id) DO UPDATE SET procedure_digests = EXCLUDED.procedure_digests",
-    );
+    query_builder
+        .push(" ON CONFLICT (id) DO UPDATE SET procedure_digests = EXCLUDED.procedure_digests");
 
     let query = query_builder.build();
     query.execute(&mut **db_tx).await?;
@@ -65,6 +64,9 @@ mod tests {
             String::new(),
         ]);
 
-        assert_eq!(canonical, vec!["digest-a".to_string(), "digest-b".to_string()]);
+        assert_eq!(
+            canonical,
+            vec!["digest-a".to_string(), "digest-b".to_string()]
+        );
     }
 }
