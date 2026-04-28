@@ -1,4 +1,5 @@
 use super::handlers;
+use super::seed;
 use crate::config::CONFIG;
 use crate::db;
 use crate::metrics;
@@ -9,6 +10,14 @@ use anyhow::Result;
 
 pub async fn start() {
     info!("Starting Indexer...");
+
+    let db = db::Database::new(&CONFIG.postgres_url).await;
+    if let Err(e) = seed::seed_standard_components(&db).await {
+        error!("Failed to seed standard account components: {}", e);
+    }
+    if let Err(e) = seed::seed_standard_notes(&db).await {
+        error!("Failed to seed standard note scripts: {}", e);
+    }
 
     loop {
         match run_handlers().await {

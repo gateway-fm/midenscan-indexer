@@ -21,6 +21,7 @@ pub async fn insert_notes(
             note_aux,
             is_network,
             nullifier,
+            script_root,
             script_code,
             inputs,
             block_number,
@@ -45,6 +46,7 @@ pub async fn insert_notes(
             .push_bind(BigDecimal::from(note.note_aux))
             .push_bind(note.is_network)
             .push_bind(note.nullifier)
+            .push_bind(note.script_root)
             .push_bind(note.script_code)
             .push_bind(note_inputs)
             .push_bind(BigDecimal::from(note.block_number))
