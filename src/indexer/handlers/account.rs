@@ -241,6 +241,10 @@ pub async fn account_handler(
                                 value: storage_slot_map_value.to_bytes(),
                                 last_updated_at_block_number: block.header().block_num().as_u32(),
                                 last_updated_at_account_update_id: account_update_id.clone(),
+                                decoded_payload: storage_decoder::decode_map_value(
+                                    &slot_name,
+                                    &storage_slot_map_value.to_bytes(),
+                                ),
                             };
                         database_account_storage_slot_map_changes.insert(
                             account_storage_slot_map_id,

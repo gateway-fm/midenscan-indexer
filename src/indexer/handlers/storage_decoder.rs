@@ -82,6 +82,34 @@ const STORAGE_SCHEMA_COMMITMENT: &str =
 // PUBLIC API
 // ================================================================================================
 
+/// Decode a map entry value given the parent `slot_name`.
+///
+/// - For `allowed_policy_proc_roots`: Word `[1,0,0,0]` means `true` (allowed),
+///   `[0,0,0,0]` means `false`.
+/// - For all other maps: falls back to the same slot-level decoder so known
+///   slot schemas are reused; unknown values become `raw_word`.
+pub fn decode_map_value(slot_name: &str, value_bytes: &[u8]) -> Option<Value> {
+    if value_bytes.len() != 32 {
+        return None;
+    }
+    let felts = parse_felts(value_bytes);
+
+    let result = match slot_name {
+        "miden::standards::mint_policy_manager::allowed_policy_proc_roots" => {
+            // Value is a boolean flag: non-zero first felt = true (allowed).
+            let enabled = felts[0] != 0;
+            let display = if enabled { "true" } else { "false" };
+            json!({
+                "type": "bool",
+                "value": enabled,
+                "display_value": display
+            })
+        }
+        _ => decode_as_raw_word(felts),
+    };
+    Some(result)
+}
+
 /// Decode a named storage slot's raw 32-byte Word into a structured JSON payload.
 ///
 /// Returns `None` only if `word_bytes` is not exactly 32 bytes.
