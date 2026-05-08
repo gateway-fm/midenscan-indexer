@@ -9,6 +9,8 @@ use miden_protocol::{
 use miden_standards::account::faucets::BasicFungibleFaucet;
 use std::collections::HashMap;
 
+use super::storage_decoder;
+
 pub async fn account_handler(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     block: miden_protocol::block::ProvenBlock,
@@ -166,18 +168,22 @@ pub async fn account_handler(
                     let slot_name = slot_index.as_str().to_string();
                     let slot_id_hex = slot_index.id().to_string();
                     let account_storage_slot_id = format!("{}_{}", account_bech, slot_id_hex);
+                    let value_bytes = leaf.to_bytes();
+                    let decoded_payload =
+                        storage_decoder::decode_slot(&slot_name, &value_bytes);
                     let database_update_account_storage_slot =
                         db::models::DatabaseAccountStorageSlot {
                             account_storage_slot_id: account_storage_slot_id.clone(),
                             account_bech: account_bech.clone(),
                             slot_index: slot_name.clone(),
-                            value: leaf.to_bytes(),
+                            value: value_bytes,
                             // DEVNOTE: this is defaulted to Value, and will be updated
                             // when indexing storage changes if there any.
                             account_storage_slot_type:
                                 db::models::DatabaseAccountStorageSlotType::Value,
                             last_updated_at_block_number: block.header().block_num().as_u32(),
                             last_updated_at_account_update_id: account_update_id.clone(),
+                            decoded_payload,
                         };
                     database_account_storage_slot_changes.insert(
                         account_storage_slot_id,
