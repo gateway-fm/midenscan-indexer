@@ -35,6 +35,12 @@ const NETWORK_ACCOUNT_ALLOWED_NOTE_SCRIPTS: &str =
 const OWNABLE2STEP_OWNER_CONFIG: &str =
     "miden::standards::access::ownable2step::owner_config";
 
+// MintPolicyManager
+const MINT_POLICY_MANAGER_ACTIVE_POLICY_PROC_ROOT: &str =
+    "miden::standards::mint_policy_manager::active_policy_proc_root";
+const MINT_POLICY_MANAGER_POLICY_AUTHORITY: &str =
+    "miden::standards::mint_policy_manager::policy_authority";
+
 // Metadata — FungibleFaucet
 const FUNGIBLE_TOKEN_METADATA: &str =
     "miden::standards::fungible_faucets::metadata";
@@ -95,8 +101,8 @@ pub fn decode_map_value(slot_name: &str, value_bytes: &[u8]) -> Option<Value> {
     let felts = parse_felts(value_bytes);
 
     let result = match slot_name {
+        // MintPolicyManager — boolean flag
         "miden::standards::mint_policy_manager::allowed_policy_proc_roots" => {
-            // Value is a boolean flag: non-zero first felt = true (allowed).
             let enabled = felts[0] != 0;
             let display = if enabled { "true" } else { "false" };
             json!({
@@ -105,6 +111,32 @@ pub fn decode_map_value(slot_name: &str, value_bytes: &[u8]) -> Option<Value> {
                 "display_value": display
             })
         }
+
+        // Multisig — approver public keys: value is a raw public-key Word
+        "miden::standards::auth::multisig::approver_public_keys" => {
+            decode_as_hex(value_bytes)
+        }
+
+        // Multisig — approver scheme IDs: [scheme_id, 0, 0, 0]
+        "miden::standards::auth::multisig::approver_schemes" => {
+            decode_as_auth_scheme(felts[0])
+        }
+
+        // Multisig — executed transactions: both key and value are native Words
+        "miden::standards::auth::multisig::executed_transactions" => {
+            decode_as_hex(value_bytes)
+        }
+
+        // Multisig — procedure thresholds: [threshold, 0, 0, 0]
+        "miden::standards::auth::multisig::procedure_thresholds" => {
+            decode_as_number(felts[0])
+        }
+
+        // SingleSigAcl — trigger procedure roots: [position_index, 0, 0, 0]
+        "miden::standards::auth::singlesig_acl::trigger_procedure_roots" => {
+            decode_as_number(felts[0])
+        }
+
         _ => decode_as_raw_word(felts),
     };
     Some(result)
@@ -128,7 +160,8 @@ pub fn decode_slot(slot_name: &str, word_bytes: &[u8]) -> Option<Value> {
         | MULTISIG_APPROVER_PUBLIC_KEYS
         | MULTISIG_EXECUTED_TRANSACTIONS
         | STORAGE_SCHEMA_COMMITMENT
-        | NETWORK_ACCOUNT_ALLOWED_NOTE_SCRIPTS => decode_as_hex(word_bytes),
+        | NETWORK_ACCOUNT_ALLOWED_NOTE_SCRIPTS
+        | MINT_POLICY_MANAGER_ACTIVE_POLICY_PROC_ROOT => decode_as_hex(word_bytes),
 
         // ── Ownable2Step owner config ──
         OWNABLE2STEP_OWNER_CONFIG => decode_as_owner_config(felts),
@@ -138,8 +171,11 @@ pub fn decode_slot(slot_name: &str, word_bytes: &[u8]) -> Option<Value> {
             decode_as_auth_scheme(felts[0])
         }
 
-        // ── Numeric (u32/u64 in Word[0]) ──
-        MULTISIG_THRESHOLD_CONFIG => decode_as_number(felts[0]),
+        // ── Mint policy authority (0=AuthControlled, 1=OwnerControlled) ──
+        MINT_POLICY_MANAGER_POLICY_AUTHORITY => decode_as_mint_policy_authority(felts[0]),
+
+        // ── Multisig threshold config: [threshold, num_approvers, 0, 0] ──
+        MULTISIG_THRESHOLD_CONFIG => decode_as_threshold_config(felts),
 
         // ── Token metadata: [token_supply, max_supply, decimals, symbol_u32] ──
         FUNGIBLE_TOKEN_METADATA => decode_as_token_metadata(felts),
@@ -219,6 +255,40 @@ fn decode_as_number(raw: u64) -> Value {
         "type": "number",
         "value": raw,
         "display_value": s
+    })
+}
+
+/// Decode multisig threshold_config: Word layout is [threshold, num_approvers, 0, 0].
+fn decode_as_threshold_config(felts: [u64; 4]) -> Value {
+    let threshold = felts[0];
+    let num_approvers = felts[1];
+    json!({
+        "type": "threshold_config",
+        "value": {
+            "threshold": threshold,
+            "num_approvers": num_approvers
+        },
+        "display_value": format!("{}/{}", threshold, num_approvers)
+    })
+}
+
+/// Decode a MintPolicyAuthority value (0 = AuthControlled, 1 = OwnerControlled).
+fn decode_as_mint_policy_authority(raw: u64) -> Value {
+    let (id, name) = match raw as u8 {
+        0 => (0u8, "AuthControlled"),
+        1 => (1u8, "OwnerControlled"),
+        other => {
+            return json!({
+                "type": "mint_policy_authority",
+                "value": other,
+                "display_value": format!("Unknown({})", other)
+            });
+        }
+    };
+    json!({
+        "type": "mint_policy_authority",
+        "value": id,
+        "display_value": name
     })
 }
 
