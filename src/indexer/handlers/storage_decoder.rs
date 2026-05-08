@@ -1,5 +1,8 @@
-use miden_protocol::{Felt, asset::TokenSymbol};
+use miden_protocol::{Felt, Word};
+use miden_standards::account::{access::Ownable2Step, faucets::TokenMetadata};
 use serde_json::{json, Value};
+
+use crate::utils::format::account_id_to_bech32;
 
 // ================================================================================================
 // SLOT NAME CONSTANTS
@@ -34,7 +37,7 @@ const OWNABLE2STEP_OWNER_CONFIG: &str =
 
 // Metadata — FungibleFaucet
 const FUNGIBLE_TOKEN_METADATA: &str =
-    "miden::standards::metadata::fungible_faucet::token_metadata";
+    "miden::standards::fungible_faucets::metadata";
 
 const FUNGIBLE_NAME_CHUNK_0: &str =
     "miden::standards::metadata::fungible_faucet::name_chunk_0";
@@ -96,9 +99,11 @@ pub fn decode_slot(slot_name: &str, word_bytes: &[u8]) -> Option<Value> {
         | GUARDIAN_PUB_KEY
         | MULTISIG_APPROVER_PUBLIC_KEYS
         | MULTISIG_EXECUTED_TRANSACTIONS
-        | OWNABLE2STEP_OWNER_CONFIG
         | STORAGE_SCHEMA_COMMITMENT
         | NETWORK_ACCOUNT_ALLOWED_NOTE_SCRIPTS => decode_as_hex(word_bytes),
+
+        // ── Ownable2Step owner config ──
+        OWNABLE2STEP_OWNER_CONFIG => decode_as_owner_config(felts),
 
         // ── Auth scheme ──
         SINGLESIG_SCHEME | SINGLESIG_ACL_SCHEME | GUARDIAN_SCHEME => {
@@ -189,34 +194,84 @@ fn decode_as_number(raw: u64) -> Value {
     })
 }
 
-/// Decode a Word as token metadata: `[token_supply, max_supply, decimals, token_symbol]`.
+/// Decode a Word as token metadata using [`TokenMetadata::try_from`].
 ///
-/// Uses [`TokenSymbol::try_from`] for proper Miden base-26 symbol decoding.
+/// Storage layout: `[token_supply, max_supply, decimals, token_symbol]`
 fn decode_as_token_metadata(felts: [u64; 4]) -> Value {
-    let token_supply = felts[0];
-    let max_supply = felts[1];
-    let decimals = felts[2] as u8;
-    let symbol_raw = felts[3];
+    let word = Word::new([
+        Felt::new(felts[0]),
+        Felt::new(felts[1]),
+        Felt::new(felts[2]),
+        Felt::new(felts[3]),
+    ]);
 
-    let symbol_str = TokenSymbol::try_from(Felt::new(symbol_raw))
-        .map(|s| s.to_string())
-        .unwrap_or_else(|_| format!("0x{:x}", symbol_raw));
+    match TokenMetadata::try_from(word) {
+        Ok(meta) => {
+            let token_supply = meta.token_supply().as_canonical_u64();
+            let max_supply = meta.max_supply().as_canonical_u64();
+            let decimals = meta.decimals();
+            let symbol = meta.symbol().to_string();
+            let display = format!(
+                "supply={}/{} decimals={} symbol={}",
+                token_supply, max_supply, decimals, symbol
+            );
+            json!({
+                "type": "token_metadata",
+                "value": {
+                    "token_supply": token_supply,
+                    "max_supply": max_supply,
+                    "decimals": decimals,
+                    "symbol": symbol
+                },
+                "display_value": display
+            })
+        }
+        Err(_) => decode_as_raw_word(felts),
+    }
+}
 
-    let display = format!(
-        "supply={}/{} decimals={} symbol={}",
-        token_supply, max_supply, decimals, symbol_str
-    );
+/// Decode `owner_config` using [`Ownable2Step::try_from_word`].
+///
+/// Storage layout: `[owner_suffix, owner_prefix, nominated_suffix, nominated_prefix]`
+fn decode_as_owner_config(felts: [u64; 4]) -> Value {
+    let word = Word::new([
+        Felt::new(felts[0]),
+        Felt::new(felts[1]),
+        Felt::new(felts[2]),
+        Felt::new(felts[3]),
+    ]);
 
-    json!({
-        "type": "token_metadata",
-        "value": {
-            "token_supply": token_supply,
-            "max_supply": max_supply,
-            "decimals": decimals,
-            "symbol": symbol_str
-        },
-        "display_value": display
-    })
+    match Ownable2Step::try_from_word(word) {
+        Ok(ownership) => {
+            let owner = ownership
+                .owner()
+                .map(|id| account_id_to_bech32(&id))
+                .unwrap_or_default();
+            let nominated = ownership
+                .nominated_owner()
+                .map(|id| account_id_to_bech32(&id))
+                .unwrap_or_default();
+            let display = if nominated.is_empty() {
+                format!("owner={}", owner)
+            } else {
+                format!("owner={} nominated={}", owner, nominated)
+            };
+            json!({
+                "type": "owner_config",
+                "value": {
+                    "owner": owner,
+                    "nominated_owner": if nominated.is_empty() { None::<String> } else { Some(nominated) }
+                },
+                "display_value": display
+            })
+        }
+        Err(_) => decode_as_hex(
+            &felts
+                .iter()
+                .flat_map(|f| f.to_le_bytes())
+                .collect::<Vec<u8>>(),
+        ),
+    }
 }
 
 /// Decode a Word as a UTF-8 string chunk packed across 4 Felts.
@@ -243,12 +298,13 @@ fn decode_as_string_chunk(felts: [u64; 4]) -> Value {
     })
 }
 
-/// Fallback: encode as a raw word of four Felt u64 values.
+/// Fallback: encode as a raw word of four Felt hex values.
 fn decode_as_raw_word(felts: [u64; 4]) -> Value {
-    let display = format!("[{}, {}, {}, {}]", felts[0], felts[1], felts[2], felts[3]);
+    let hex = felts.map(|f| format!("0x{:016x}", f));
+    let display = format!("[{}, {}, {}, {}]", hex[0], hex[1], hex[2], hex[3]);
     json!({
         "type": "raw_word",
-        "value": [felts[0], felts[1], felts[2], felts[3]],
+        "value": [hex[0], hex[1], hex[2], hex[3]],
         "display_value": display
     })
 }
