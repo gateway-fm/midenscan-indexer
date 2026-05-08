@@ -1,3 +1,4 @@
+use miden_protocol::{Felt, asset::TokenSymbol};
 use serde_json::{json, Value};
 
 // ================================================================================================
@@ -188,17 +189,18 @@ fn decode_as_number(raw: u64) -> Value {
     })
 }
 
-/// Decode a Word as token metadata: `[token_supply, max_supply, decimals, symbol_u32]`.
+/// Decode a Word as token metadata: `[token_supply, max_supply, decimals, token_symbol]`.
 ///
-/// Token symbol is stored as a packed ASCII/UTF-8 string in a single u64 field element.
+/// Uses [`TokenSymbol::try_from`] for proper Miden base-26 symbol decoding.
 fn decode_as_token_metadata(felts: [u64; 4]) -> Value {
     let token_supply = felts[0];
     let max_supply = felts[1];
     let decimals = felts[2] as u8;
     let symbol_raw = felts[3];
 
-    // Symbol is stored as up to 6 ASCII bytes packed into a u64 (big-endian per Miden convention).
-    let symbol_str = decode_token_symbol(symbol_raw);
+    let symbol_str = TokenSymbol::try_from(Felt::new(symbol_raw))
+        .map(|s| s.to_string())
+        .unwrap_or_else(|_| format!("0x{:x}", symbol_raw));
 
     let display = format!(
         "supply={}/{} decimals={} symbol={}",
@@ -215,25 +217,6 @@ fn decode_as_token_metadata(felts: [u64; 4]) -> Value {
         },
         "display_value": display
     })
-}
-
-/// Decode the token symbol packed in a single Felt u64.
-///
-/// Miden stores the symbol as a right-aligned, null-padded ASCII string in the lower bytes
-/// of a u64 (big-endian byte order for the string bytes).
-fn decode_token_symbol(raw: u64) -> String {
-    // The raw u64 has ASCII bytes in its significant bytes (big-endian).
-    let bytes = raw.to_be_bytes();
-    let s: String = bytes
-        .iter()
-        .filter(|&&b| b != 0)
-        .map(|&b| b as char)
-        .collect();
-    if s.is_empty() {
-        format!("0x{:x}", raw)
-    } else {
-        s
-    }
 }
 
 /// Decode a Word as a UTF-8 string chunk packed across 4 Felts.
