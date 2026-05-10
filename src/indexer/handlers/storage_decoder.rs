@@ -376,16 +376,14 @@ fn decode_as_owner_config(felts: [u64; 4]) -> Value {
 ///
 /// Each Felt contains up to 7 UTF-8 bytes (the 8th byte is a length hint or padding).
 fn decode_as_string_chunk(felts: [u64; 4]) -> Value {
-    // Each u64 Felt stores bytes as little-endian; strip null bytes to get the string.
+    // Only the first 7 bytes in each felt belong to the payload. The 8th byte is
+    // a length hint/padding byte and can introduce embedded NULs if preserved.
     let mut raw_bytes: Vec<u8> = Vec::with_capacity(32);
     for felt in felts {
         let bytes = felt.to_le_bytes();
-        raw_bytes.extend_from_slice(&bytes);
+        raw_bytes.extend_from_slice(&bytes[..7]);
     }
-    // Strip trailing null bytes.
-    while raw_bytes.last() == Some(&0) {
-        raw_bytes.pop();
-    }
+    raw_bytes.retain(|byte| *byte != 0);
 
     let decoded = String::from_utf8_lossy(&raw_bytes).to_string();
     let display = decoded.clone();
@@ -405,4 +403,43 @@ fn decode_as_raw_word(felts: [u64; 4]) -> Value {
         "value": [hex[0], hex[1], hex[2], hex[3]],
         "display_value": display
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn felt_from_payload(bytes: &[u8], marker: u8) -> u64 {
+        let mut felt_bytes = [0u8; 8];
+        felt_bytes[..bytes.len()].copy_from_slice(bytes);
+        felt_bytes[7] = marker;
+        u64::from_le_bytes(felt_bytes)
+    }
+
+    #[test]
+    fn decode_string_chunk_ignores_length_hint_bytes() {
+        let decoded = decode_as_string_chunk([
+            felt_from_payload(b"ABCDEFG", 1),
+            felt_from_payload(b"HIJKLMN", 2),
+            felt_from_payload(b"", 0),
+            felt_from_payload(b"", 0),
+        ]);
+
+        assert_eq!(decoded["value"], "ABCDEFGHIJKLMN");
+        assert_eq!(decoded["display_value"], "ABCDEFGHIJKLMN");
+    }
+
+    #[test]
+    fn decode_slot_for_string_chunks_has_no_embedded_nuls() {
+        let mut word_bytes = Vec::new();
+        word_bytes.extend_from_slice(&felt_from_payload(b"Token", 1).to_le_bytes());
+        word_bytes.extend_from_slice(&felt_from_payload(b" Name", 2).to_le_bytes());
+        word_bytes.extend_from_slice(&felt_from_payload(b"", 0).to_le_bytes());
+        word_bytes.extend_from_slice(&felt_from_payload(b"", 0).to_le_bytes());
+
+        let decoded = decode_slot(FUNGIBLE_NAME_CHUNK_0, &word_bytes).expect("decoded payload");
+
+        assert_eq!(decoded["value"], "Token Name");
+        assert_eq!(decoded["display_value"], "Token Name");
+    }
 }
