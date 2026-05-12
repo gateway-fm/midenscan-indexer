@@ -169,8 +169,7 @@ pub async fn account_handler(
                     let slot_id_hex = slot_index.id().to_string();
                     let account_storage_slot_id = format!("{}_{}", account_bech, slot_id_hex);
                     let value_bytes = leaf.to_bytes();
-                    let decoded_payload =
-                        storage_decoder::decode_slot(&slot_name, &value_bytes);
+                    let decoded_payload = storage_decoder::decode_slot(&slot_name, &value_bytes);
                     let database_update_account_storage_slot =
                         db::models::DatabaseAccountStorageSlot {
                             account_storage_slot_id: account_storage_slot_id.clone(),
@@ -213,10 +212,7 @@ pub async fn account_handler(
                                 value: vec![0u8; 32],
                                 account_storage_slot_type:
                                     db::models::DatabaseAccountStorageSlotType::Map,
-                                last_updated_at_block_number: block
-                                    .header()
-                                    .block_num()
-                                    .as_u32(),
+                                last_updated_at_block_number: block.header().block_num().as_u32(),
                                 last_updated_at_account_update_id: account_update_id.clone(),
                                 decoded_payload: None,
                             },

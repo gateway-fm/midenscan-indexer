@@ -23,7 +23,8 @@ const GUARDIAN_SCHEME: &str = "miden::standards::auth::guardian::scheme";
 
 // Auth — Multisig
 const MULTISIG_THRESHOLD_CONFIG: &str = "miden::standards::auth::multisig::threshold_config";
-const MULTISIG_APPROVER_PUBLIC_KEYS: &str = "miden::standards::auth::multisig::approver_public_keys";
+const MULTISIG_APPROVER_PUBLIC_KEYS: &str =
+    "miden::standards::auth::multisig::approver_public_keys";
 const MULTISIG_EXECUTED_TRANSACTIONS: &str =
     "miden::standards::auth::multisig::executed_transactions";
 
@@ -32,8 +33,7 @@ const NETWORK_ACCOUNT_ALLOWED_NOTE_SCRIPTS: &str =
     "miden::standards::auth::network_account::allowed_note_scripts";
 
 // Access — Ownable2Step
-const OWNABLE2STEP_OWNER_CONFIG: &str =
-    "miden::standards::access::ownable2step::owner_config";
+const OWNABLE2STEP_OWNER_CONFIG: &str = "miden::standards::access::ownable2step::owner_config";
 
 // MintPolicyManager
 const MINT_POLICY_MANAGER_ACTIVE_POLICY_PROC_ROOT: &str =
@@ -42,13 +42,10 @@ const MINT_POLICY_MANAGER_POLICY_AUTHORITY: &str =
     "miden::standards::mint_policy_manager::policy_authority";
 
 // Metadata — FungibleFaucet
-const FUNGIBLE_TOKEN_METADATA: &str =
-    "miden::standards::fungible_faucets::metadata";
+const FUNGIBLE_TOKEN_METADATA: &str = "miden::standards::fungible_faucets::metadata";
 
-const FUNGIBLE_NAME_CHUNK_0: &str =
-    "miden::standards::metadata::fungible_faucet::name_chunk_0";
-const FUNGIBLE_NAME_CHUNK_1: &str =
-    "miden::standards::metadata::fungible_faucet::name_chunk_1";
+const FUNGIBLE_NAME_CHUNK_0: &str = "miden::standards::metadata::fungible_faucet::name_chunk_0";
+const FUNGIBLE_NAME_CHUNK_1: &str = "miden::standards::metadata::fungible_faucet::name_chunk_1";
 
 const FUNGIBLE_DESCRIPTION_SLOTS: [&str; 7] = [
     "miden::standards::metadata::fungible_faucet::description_0",
@@ -81,8 +78,7 @@ const FUNGIBLE_EXTERNAL_LINK_SLOTS: [&str; 7] = [
 ];
 
 // Metadata — StorageSchema
-const STORAGE_SCHEMA_COMMITMENT: &str =
-    "miden::standards::metadata::storage_schema::commitment";
+const STORAGE_SCHEMA_COMMITMENT: &str = "miden::standards::metadata::storage_schema::commitment";
 
 // ================================================================================================
 // PUBLIC API
@@ -113,24 +109,16 @@ pub fn decode_map_value(slot_name: &str, value_bytes: &[u8]) -> Option<Value> {
         }
 
         // Multisig — approver public keys: value is a raw public-key Word
-        "miden::standards::auth::multisig::approver_public_keys" => {
-            decode_as_hex(value_bytes)
-        }
+        "miden::standards::auth::multisig::approver_public_keys" => decode_as_hex(value_bytes),
 
         // Multisig — approver scheme IDs: [scheme_id, 0, 0, 0]
-        "miden::standards::auth::multisig::approver_schemes" => {
-            decode_as_auth_scheme(felts[0])
-        }
+        "miden::standards::auth::multisig::approver_schemes" => decode_as_auth_scheme(felts[0]),
 
         // Multisig — executed transactions: both key and value are native Words
-        "miden::standards::auth::multisig::executed_transactions" => {
-            decode_as_hex(value_bytes)
-        }
+        "miden::standards::auth::multisig::executed_transactions" => decode_as_hex(value_bytes),
 
         // Multisig — procedure thresholds: [threshold, 0, 0, 0]
-        "miden::standards::auth::multisig::procedure_thresholds" => {
-            decode_as_number(felts[0])
-        }
+        "miden::standards::auth::multisig::procedure_thresholds" => decode_as_number(felts[0]),
 
         // SingleSigAcl — trigger procedure roots: [position_index, 0, 0, 0]
         "miden::standards::auth::singlesig_acl::trigger_procedure_roots" => {
@@ -181,9 +169,9 @@ pub fn decode_slot(slot_name: &str, word_bytes: &[u8]) -> Option<Value> {
         FUNGIBLE_TOKEN_METADATA => decode_as_token_metadata(felts),
 
         // ── String chunks (UTF-8 packed into Felts) ──
-        FUNGIBLE_NAME_CHUNK_0
-        | FUNGIBLE_NAME_CHUNK_1
-        | SINGLESIG_ACL_CONFIG => decode_as_string_chunk(felts),
+        FUNGIBLE_NAME_CHUNK_0 | FUNGIBLE_NAME_CHUNK_1 | SINGLESIG_ACL_CONFIG => {
+            decode_as_string_chunk(felts)
+        }
 
         _ => {
             // Check dynamic arrays (descriptions, logo URIs, external links)
