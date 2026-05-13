@@ -18,7 +18,8 @@ pub async fn insert_or_merge_account_storage_slots(
             value,
             account_storage_slot_type,
             last_updated_at_block_number,
-            last_updated_at_account_update_id
+            last_updated_at_account_update_id,
+            decoded_payload
         ) ",
     );
 
@@ -31,7 +32,8 @@ pub async fn insert_or_merge_account_storage_slots(
             .push_bind(BigDecimal::from(
                 account_storage_slot.last_updated_at_block_number,
             ))
-            .push_bind(account_storage_slot.last_updated_at_account_update_id);
+            .push_bind(account_storage_slot.last_updated_at_account_update_id)
+            .push_bind(account_storage_slot.decoded_payload.map(sqlx::types::Json));
     });
 
     query_builder.push(
@@ -39,7 +41,8 @@ pub async fn insert_or_merge_account_storage_slots(
             value = EXCLUDED.value,
             account_storage_slot_type = EXCLUDED.account_storage_slot_type,
             last_updated_at_block_number = EXCLUDED.last_updated_at_block_number,
-            last_updated_at_account_update_id = EXCLUDED.last_updated_at_account_update_id",
+            last_updated_at_account_update_id = EXCLUDED.last_updated_at_account_update_id,
+            decoded_payload = EXCLUDED.decoded_payload",
     );
 
     let query = query_builder.build();

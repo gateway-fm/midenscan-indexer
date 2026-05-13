@@ -18,7 +18,8 @@ pub async fn insert_or_merge_account_storage_slot_maps(
             key,
             value,
             last_updated_at_block_number,
-            last_updated_at_account_update_id
+            last_updated_at_account_update_id,
+            decoded_payload
         ) ",
     );
 
@@ -31,14 +32,16 @@ pub async fn insert_or_merge_account_storage_slot_maps(
             .push_bind(BigDecimal::from(
                 account_storage_slot.last_updated_at_block_number,
             ))
-            .push_bind(account_storage_slot.last_updated_at_account_update_id);
+            .push_bind(account_storage_slot.last_updated_at_account_update_id)
+            .push_bind(account_storage_slot.decoded_payload.map(sqlx::types::Json));
     });
 
     query_builder.push(
         " ON CONFLICT (account_storage_slot_map_id) DO UPDATE SET 
             value = EXCLUDED.value,
             last_updated_at_block_number = EXCLUDED.last_updated_at_block_number,
-            last_updated_at_account_update_id = EXCLUDED.last_updated_at_account_update_id",
+            last_updated_at_account_update_id = EXCLUDED.last_updated_at_account_update_id,
+            decoded_payload = EXCLUDED.decoded_payload",
     );
 
     let query = query_builder.build();

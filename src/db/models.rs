@@ -80,6 +80,9 @@ pub struct DatabaseAccountStorageSlot {
     pub account_storage_slot_type: DatabaseAccountStorageSlotType,
     pub last_updated_at_block_number: u32,
     pub last_updated_at_account_update_id: String,
+    /// Structured JSON decoding of the raw Word value, produced by the slot decoder.
+    /// Schema: {"type": "<type>", "value": <typed_value>, "display_value": "<string>"}
+    pub decoded_payload: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone)]
@@ -92,6 +95,7 @@ pub struct DatabaseAccountStorageSlotMap {
     pub value: Vec<u8>,
     pub last_updated_at_block_number: u32,
     pub last_updated_at_account_update_id: String,
+    pub decoded_payload: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone)]
