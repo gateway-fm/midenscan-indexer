@@ -14,10 +14,7 @@ const POLL_INTERVAL: Duration = Duration::from_secs(5);
 async fn get_latest_block_number(rpc: &Rpc) -> Result<u32> {
     let status = rpc.get_status().await;
     match status {
-        Ok(s) => match s.store {
-            Some(store) => Ok(store.chain_tip),
-            None => Err(anyhow::anyhow!("RPC store status error: missing store")),
-        },
+        Ok(s) => Ok(s.chain_tip),
         Err(e) => Err(anyhow::anyhow!("Could not get latest block number: {}", e)),
     }
 }

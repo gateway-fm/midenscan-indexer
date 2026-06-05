@@ -18,7 +18,6 @@ pub async fn insert_or_ignore_accounts(
                 account_id,
                 account_id_prefix,
                 account_type,
-                storage_mode,
                 code,
                 code_size,
                 code_procedure_roots,
@@ -33,7 +32,6 @@ pub async fn insert_or_ignore_accounts(
             .push_bind(account.account_id)
             .push_bind(account.account_id_prefix)
             .push_bind(account.account_type)
-            .push_bind(account.storage_mode)
             .push_bind(account.code)
             .push_bind(BigDecimal::from(account.code_size))
             .push_bind(account.code_procedure_roots)
