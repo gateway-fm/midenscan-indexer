@@ -10,6 +10,7 @@ pub use connection::Database;
 pub mod fungible_faucet_account;
 pub mod models;
 pub mod note;
+pub mod note_attachment;
 pub mod note_tag;
 pub mod note_verified_script;
 pub mod nullifier;

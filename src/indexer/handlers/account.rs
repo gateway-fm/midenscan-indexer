@@ -6,7 +6,7 @@ use miden_protocol::{
     crypto::utils::Serializable,
     PrettyPrint,
 };
-use miden_standards::account::faucets::BasicFungibleFaucet;
+use miden_standards::account::faucets::FungibleFaucet;
 use std::collections::HashMap;
 
 use super::storage_decoder;
@@ -48,7 +48,6 @@ pub async fn account_handler(
             account_id_prefix: account_id_prefix.clone(),
 
             account_type: None,
-            storage_mode: db::models::DatabaseMidenAccountStorageMode::Private,
             code: None,
             code_procedure_roots: None,
             code_size: 0,
@@ -86,14 +85,10 @@ pub async fn account_handler(
                     // new account
                     let account = Account::try_from(account_delta).ok();
 
-                    database_account.account_type = account
-                        .as_ref()
-                        .map(|acc| db::models::DatabaseMidenAccountType::from(acc.account_type()));
-
-                    database_account.storage_mode =
-                        db::models::DatabaseMidenAccountStorageMode::from(
-                            account_delta.id().storage_mode(),
-                        );
+                    database_account.account_type =
+                        Some(db::models::DatabaseMidenAccountType::from(
+                            account_delta.id().account_type(),
+                        ));
 
                     database_account.code = Some(format!("{}", PrettyPrint::render(code)));
                     database_account.code_size = code.get_size_hint() as u64;
@@ -105,17 +100,17 @@ pub async fn account_handler(
                     }
                     database_account.code_procedure_roots = Some(account_code_procedure_roots);
 
-                    if let Some(basic_fungible_faucet) =
-                        account.and_then(|acc| BasicFungibleFaucet::try_from(acc).ok())
+                    if let Some(fungible_faucet) =
+                        account.and_then(|acc| FungibleFaucet::try_from(acc).ok())
                     {
                         let mut db_acc = db::models::DatabaseFungibleFaucetAccount {
                             account_bech: account_bech.clone(),
                             faucet_id_prefix: account_id_prefix,
                             symbol: None,
-                            decimals: Some(basic_fungible_faucet.decimals()),
-                            max_supply: Some(basic_fungible_faucet.max_supply().as_canonical_u64()),
+                            decimals: Some(fungible_faucet.decimals()),
+                            max_supply: Some(fungible_faucet.max_supply().as_u64()),
                         };
-                        let token_symbol_str = basic_fungible_faucet.symbol().to_string();
+                        let token_symbol_str = fungible_faucet.symbol().to_string();
                         db_acc.symbol = Some(token_symbol_str);
                         database_fungible_faucet_accounts.push(db_acc);
                     }
