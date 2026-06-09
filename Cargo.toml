@@ -9,7 +9,7 @@ repository = "https://github.com/gateway-fm/midenscan-indexer"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-miden-node-proto = { version = "0.15.0-rc.0" }
+miden-node-proto = { version = "0.15.0-rc.4" }
 miden-protocol = { version = "0.15.2" }
 miden-standards = { version = "0.15.2" }
 sqlx = { version = "0.8.6", features = [ "runtime-tokio", "postgres", "bigdecimal", "uuid", "json" ] }

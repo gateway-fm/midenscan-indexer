@@ -2334,9 +2334,9 @@ dependencies = [
 
 [[package]]
 name = "miden-node-grpc-error-macro"
-version = "0.15.0-rc.0"
+version = "0.15.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7c3891fc7d8d42e364075d2915df1b1f3a333f0f787cbe814cd440e53177495"
+checksum = "7d3bb92fe0a9bfc0032984d1c145e935934273db3e071f9262c18cb82121c572"
 dependencies = [
  "quote",
  "syn 2.0.110",
@@ -2344,9 +2344,9 @@ dependencies = [
 
 [[package]]
 name = "miden-node-proto"
-version = "0.15.0-rc.0"
+version = "0.15.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56ce95eb1087cad78167fdcf3ef510fa83c7b0b38b9dcff5b22ba1a7c6f45844"
+checksum = "2df504dcb3928a2e7a17fb2d3be4c92f29b642d060f67e81ae9c70415ec80b55"
 dependencies = [
  "anyhow",
  "build-rs",
@@ -2371,9 +2371,9 @@ dependencies = [
 
 [[package]]
 name = "miden-node-proto-build"
-version = "0.15.0-rc.0"
+version = "0.15.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2944381c6017ef98e1a840d736bffbfb1053ef420f152be47e9a5cdea62278e"
+checksum = "bde72e67f1c73c852456d6451e42811cdffbcf7accf76883d01d3250b5850153"
 dependencies = [
  "build-rs",
  "codegen",
@@ -2385,9 +2385,9 @@ dependencies = [
 
 [[package]]
 name = "miden-node-utils"
-version = "0.15.0-rc.0"
+version = "0.15.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96efd0754a0d664fc727a59efbfbe177699d0bc7b4d6da78c59ddbda3e0ca6c5"
+checksum = "cad67cf08fd1a4f701745742d86b939f1573f49fe6090a40485cd31cc4975db4"
 dependencies = [
  "anyhow",
  "backon",
