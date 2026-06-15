@@ -4,9 +4,9 @@ use anyhow::Result;
 use miden_protocol::{
     asset::Asset::{Fungible, NonFungible},
     crypto::utils::Serializable,
+    note::NoteAttachments,
     transaction::OutputNote,
 };
-use miden_standards::note::NetworkAccountTarget;
 use std::collections::HashMap;
 
 fn normalize_script_root(script_root: String) -> String {
@@ -16,12 +16,20 @@ fn normalize_script_root(script_root: String) -> String {
         .to_ascii_lowercase()
 }
 
+fn attachments_for(output_note: &OutputNote) -> &NoteAttachments {
+    match output_note {
+        OutputNote::Public(public_note) => public_note.as_note().attachments(),
+        OutputNote::Private(private_note) => private_note.attachments(),
+    }
+}
+
 pub async fn note_handler(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     block: miden_protocol::block::ProvenBlock,
 ) -> Result<()> {
     let mut database_notes: Vec<db::models::DatabaseNote> = Vec::new();
     let mut database_note_assets: Vec<db::models::DatabaseNoteAsset> = Vec::new();
+    let mut database_note_attachments: Vec<db::models::DatabaseNoteAttachment> = Vec::new();
     let mut database_note_tags: HashMap<u32, db::models::DatabaseNoteTag> = HashMap::new();
 
     for (block_note_index, output_note) in block.body().output_notes() {
@@ -31,6 +39,7 @@ pub async fn note_handler(
             .map(|value| value.digest().as_bytes().to_vec());
 
         let note_id = output_note.id().as_bytes().to_vec();
+        let note_id_hex = output_note.id().to_hex();
         let note_metadata_tag: u32 = note_metadata.tag().into();
         let note_sender = utils::format::account_id_to_bech32(&note_metadata.sender());
 
@@ -41,9 +50,6 @@ pub async fn note_handler(
             sender: note_sender,
             note_type: db::models::DatabaseMidenNoteType::from(note_metadata.note_type()),
             note_tag: note_metadata_tag,
-            note_aux: note_metadata.attachment().content().to_word()[0].as_canonical_u64(),
-            is_network: note_metadata.attachment().attachment_scheme()
-                == NetworkAccountTarget::ATTACHMENT_SCHEME,
 
             // Only for full notes, added later
             nullifier: None,
@@ -89,11 +95,21 @@ pub async fn note_handler(
             database_note_tags.insert(note_metadata_tag, database_note_tag);
         }
 
+        for (position, attachment) in attachments_for(output_note).iter().enumerate() {
+            database_note_attachments.push(db::models::DatabaseNoteAttachment {
+                note_attachment_id: format!("{}_{}", note_id_hex, position),
+                note_id: note_id.clone(),
+                position: position as i16,
+                scheme: attachment.attachment_scheme().as_u16() as i32,
+                content: Some(attachment.to_bytes()),
+            });
+        }
+
         if let Some(note_assets) = output_note.assets() {
             for asset in note_assets.iter() {
                 let faucet_id_prefix = asset.faucet_id().prefix().to_bytes().to_vec();
                 let amount: u64 = match asset {
-                    Fungible(asset) => asset.amount(),
+                    Fungible(asset) => asset.amount().as_u64(),
                     NonFungible(_) => 1,
                 };
                 database_note_assets.push(db::models::DatabaseNoteAsset {
@@ -111,6 +127,8 @@ pub async fn note_handler(
     }
     db::note::insert_notes(db_tx, database_notes).await?;
     db::note::insert_or_ignore_note_assets(db_tx, database_note_assets).await?;
+    db::note_attachment::insert_or_ignore_note_attachments(db_tx, database_note_attachments)
+        .await?;
     db::note_tag::insert_note_tags(db_tx, database_note_tags.values().cloned().collect()).await?;
 
     Ok(())

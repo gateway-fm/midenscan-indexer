@@ -105,12 +105,20 @@ fn build_standard_components() -> Vec<DatabaseAccountVerifiedComponent> {
             StandardAccountComponent::BasicWallet,
         ),
         (
-            AccountComponentInterface::BasicFungibleFaucet,
-            StandardAccountComponent::BasicFungibleFaucet,
+            AccountComponentInterface::FungibleFaucet,
+            StandardAccountComponent::FungibleFaucet,
         ),
         (
-            AccountComponentInterface::NetworkFungibleFaucet,
-            StandardAccountComponent::NetworkFungibleFaucet,
+            AccountComponentInterface::Authority,
+            StandardAccountComponent::Authority,
+        ),
+        (
+            AccountComponentInterface::Ownable2Step,
+            StandardAccountComponent::Ownable2Step,
+        ),
+        (
+            AccountComponentInterface::RoleBasedAccessControl,
+            StandardAccountComponent::RoleBasedAccessControl,
         ),
         (
             AccountComponentInterface::AuthSingleSig,
@@ -125,12 +133,20 @@ fn build_standard_components() -> Vec<DatabaseAccountVerifiedComponent> {
             StandardAccountComponent::AuthMultisig,
         ),
         (
-            AccountComponentInterface::AuthMultisigPsm,
-            StandardAccountComponent::AuthMultisigPsm,
+            AccountComponentInterface::AuthMultisigSmart,
+            StandardAccountComponent::AuthMultisigSmart,
+        ),
+        (
+            AccountComponentInterface::AuthGuardedMultisig,
+            StandardAccountComponent::AuthGuardedMultisig,
         ),
         (
             AccountComponentInterface::AuthNoAuth,
             StandardAccountComponent::AuthNoAuth,
+        ),
+        (
+            AccountComponentInterface::AuthNetworkAccount,
+            StandardAccountComponent::AuthNetworkAccount,
         ),
     ];
 
@@ -145,8 +161,8 @@ fn build_standard_components() -> Vec<DatabaseAccountVerifiedComponent> {
             let name = interface.name();
             let id = Uuid::new_v5(&MIDENSCAN_COMPONENTS_NAMESPACE, name.as_bytes());
             let procedure_digests: Vec<String> = component
-                .procedure_digests()
-                .map(|word| word.to_hex())
+                .procedure_roots()
+                .map(|root| root.mast_root().to_hex())
                 .collect();
 
             DatabaseAccountVerifiedComponent {

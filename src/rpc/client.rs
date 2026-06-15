@@ -1,6 +1,6 @@
 use anyhow::Result;
 use miden_node_proto::generated::{
-    blockchain::BlockNumber,
+    blockchain::BlockRequest,
     rpc::{api_client::ApiClient, RpcStatus},
 };
 use miden_protocol::{block::ProvenBlock, crypto::utils::Deserializable};
@@ -50,7 +50,10 @@ impl Rpc {
     pub async fn get_block_by_number(&self, block_num: u32) -> Result<ProvenBlock> {
         let mut rpc_api = ApiClient::connect(self.rpc_url.clone()).await.unwrap();
 
-        let request = BlockNumber { block_num };
+        let request = BlockRequest {
+            block_num,
+            include_proof: None,
+        };
         let api_response = rpc_api.get_block_by_number(request).await?.into_inner();
 
         if let Some(block_data) = api_response.block {

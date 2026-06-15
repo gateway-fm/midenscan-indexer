@@ -1,5 +1,5 @@
 use miden_protocol::{
-    account::{AccountStorageMode, AccountType, StorageSlotType},
+    account::{AccountType, StorageSlotType},
     note::NoteType,
 };
 
@@ -32,7 +32,6 @@ pub struct DatabaseAccount {
     pub account_id_prefix: Vec<u8>,
 
     pub account_type: Option<DatabaseMidenAccountType>,
-    pub storage_mode: DatabaseMidenAccountStorageMode,
     pub code: Option<String>,
     pub code_size: u64,
     pub code_procedure_roots: Option<Vec<String>>,
@@ -140,12 +139,10 @@ pub struct DatabaseNote {
     pub sender: String,
     pub note_type: DatabaseMidenNoteType,
     pub note_tag: u32,
-    pub note_aux: u64,
     pub nullifier: Option<Vec<u8>>,
     pub script_root: Option<String>,
     pub script_code: Option<String>,
     pub inputs: Option<Vec<u64>>,
-    pub is_network: bool,
 
     pub block_number: u32,
     pub timestamp: u32,
@@ -163,6 +160,16 @@ pub struct DatabaseNoteAsset {
     pub note_id: Vec<u8>,
     pub faucet_id_prefix: Vec<u8>,
     pub amount: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct DatabaseNoteAttachment {
+    // {note_id}_{position}
+    pub note_attachment_id: String,
+    pub note_id: Vec<u8>,
+    pub position: i16,
+    pub scheme: i32,
+    pub content: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Clone)]
@@ -194,41 +201,15 @@ pub struct DatabaseFungibleFaucetAccount {
 #[derive(sqlx::Type, Debug, Clone)]
 #[sqlx(type_name = "miden_account_type")]
 pub enum DatabaseMidenAccountType {
-    FungibleFaucet,
-    NonFungibleFaucet,
-    RegularAccountImmutableCode,
-    RegularAccountUpdatableCode,
+    Private,
+    Public,
 }
 
 impl From<AccountType> for DatabaseMidenAccountType {
     fn from(account_type: AccountType) -> Self {
         match account_type {
-            AccountType::FungibleFaucet => DatabaseMidenAccountType::FungibleFaucet,
-            AccountType::NonFungibleFaucet => DatabaseMidenAccountType::NonFungibleFaucet,
-            AccountType::RegularAccountImmutableCode => {
-                DatabaseMidenAccountType::RegularAccountImmutableCode
-            }
-            AccountType::RegularAccountUpdatableCode => {
-                DatabaseMidenAccountType::RegularAccountUpdatableCode
-            }
-        }
-    }
-}
-
-#[derive(sqlx::Type, Debug, Clone)]
-#[sqlx(type_name = "miden_account_storage_mode")]
-pub enum DatabaseMidenAccountStorageMode {
-    Public,
-    Network,
-    Private,
-}
-
-impl From<AccountStorageMode> for DatabaseMidenAccountStorageMode {
-    fn from(account_storage_mode: AccountStorageMode) -> Self {
-        match account_storage_mode {
-            AccountStorageMode::Public => DatabaseMidenAccountStorageMode::Public,
-            AccountStorageMode::Network => DatabaseMidenAccountStorageMode::Network,
-            AccountStorageMode::Private => DatabaseMidenAccountStorageMode::Private,
+            AccountType::Private => DatabaseMidenAccountType::Private,
+            AccountType::Public => DatabaseMidenAccountType::Public,
         }
     }
 }
@@ -237,7 +218,6 @@ impl From<AccountStorageMode> for DatabaseMidenAccountStorageMode {
 #[sqlx(type_name = "miden_note_type")]
 pub enum DatabaseMidenNoteType {
     Private,
-    Encrypted,
     Public,
 }
 
