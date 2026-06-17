@@ -47,7 +47,7 @@ pub async fn account_handler(
             account_id: account_id.clone(),
             account_id_prefix: account_id_prefix.clone(),
 
-            account_type: None,
+            account_type: Some(db::models::DatabaseMidenAccountType::Private),
             code: None,
             code_procedure_roots: None,
             code_size: 0,
