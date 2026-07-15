@@ -2,9 +2,10 @@ use crate::db;
 use crate::utils;
 use anyhow::Result;
 use miden_protocol::{
-    account::{delta::AccountUpdateDetails, Account, NonFungibleDeltaAction},
+    account::{Account, AccountUpdateDetails},
+    asset::{Asset, AssetComposition},
     crypto::utils::Serializable,
-    PrettyPrint,
+    PrettyPrint, Word,
 };
 use miden_standards::account::faucets::FungibleFaucet;
 use std::collections::HashMap;
@@ -17,8 +18,10 @@ pub async fn account_handler(
 ) -> Result<()> {
     let mut database_accounts: Vec<db::models::DatabaseAccount> = Vec::new();
     let mut database_account_updates: Vec<db::models::DatabaseAccountUpdate> = Vec::new();
-    let mut database_account_vault_assets_changes: Vec<db::models::DatabaseAccountVaultAsset> =
-        Vec::new();
+    let mut database_account_vault_assets_changes: HashMap<
+        String,
+        db::models::DatabaseAccountVaultAsset,
+    > = HashMap::new();
     let mut database_account_storage_slot_changes: HashMap<
         String,
         db::models::DatabaseAccountStorageSlot,
@@ -80,14 +83,14 @@ pub async fn account_handler(
         };
 
         match updated_account.details() {
-            AccountUpdateDetails::Delta(account_delta) => {
-                if let Some(code) = account_delta.code() {
+            AccountUpdateDetails::Public(account_patch) => {
+                if let Some(code) = account_patch.code() {
                     // new account
-                    let account = Account::try_from(account_delta).ok();
+                    let account = Account::try_from(account_patch).ok();
 
                     database_account.account_type =
                         Some(db::models::DatabaseMidenAccountType::from(
-                            account_delta.id().account_type(),
+                            account_patch.id().account_type(),
                         ));
 
                     database_account.code = Some(format!("{}", PrettyPrint::render(code)));
@@ -116,54 +119,56 @@ pub async fn account_handler(
                     }
                 }
 
-                database_account_update.nonce_delta =
-                    Some(account_delta.nonce_delta().as_canonical_u64());
+                // The patch carries the final nonce of the account rather than a delta.
+                database_account_update.nonce_delta = account_patch
+                    .final_nonce()
+                    .map(|nonce| nonce.as_canonical_u64());
 
-                let account_delta_vault = account_delta.vault();
-                for (faucet_id, amount) in account_delta_vault.fungible().iter() {
-                    let faucet_id_prefix_formatted =
-                        faucet_id.faucet_id().prefix().to_bytes().to_vec();
-
-                    database_account_vault_assets_changes.push(
-                        db::models::DatabaseAccountVaultAsset {
-                            account_vault_asset_id: format!(
-                                "{}_{}",
-                                account_bech,
-                                faucet_id.faucet_id().prefix().to_hex(),
-                            ),
-                            account_bech: account_bech.clone(),
-                            faucet_id_prefix: faucet_id_prefix_formatted,
-                            amount: *amount,
-                        },
-                    );
-                }
-                for (non_fungible_asset, non_fungible_delta) in
-                    account_delta_vault.non_fungible().iter()
-                {
-                    let faucet_id_prefix_formatted =
-                        non_fungible_asset.faucet_id().prefix().to_bytes().to_vec();
-                    let amount: i64 = match non_fungible_delta {
-                        NonFungibleDeltaAction::Add => 1,
-                        NonFungibleDeltaAction::Remove => -1,
+                // Vault patches carry absolute asset values: updated assets hold the
+                // new total amount, removed assets are zeroed out.
+                let account_patch_vault = account_patch.vault();
+                for asset in account_patch_vault.updated_assets() {
+                    let faucet_id_prefix_formatted = asset.faucet_id().prefix().to_bytes().to_vec();
+                    let (asset_id_hex, amount) = match asset {
+                        Asset::Fungible(fungible) => (
+                            fungible.faucet_id().prefix().to_hex(),
+                            i64::try_from(u64::from(fungible.amount()))?,
+                        ),
+                        // Non-fungible assets are unique, one row per asset id.
+                        Asset::NonFungible(_) => (asset.id().to_word().to_hex(), 1),
                     };
-                    database_account_vault_assets_changes.push(
+                    database_account_vault_assets_changes.insert(
+                        format!("{}_{}", account_bech, asset_id_hex),
                         db::models::DatabaseAccountVaultAsset {
-                            account_vault_asset_id: format!(
-                                "{}_{}",
-                                account_bech,
-                                non_fungible_asset.faucet_id().to_hex(),
-                            ),
+                            account_vault_asset_id: format!("{}_{}", account_bech, asset_id_hex),
                             account_bech: account_bech.clone(),
                             faucet_id_prefix: faucet_id_prefix_formatted,
                             amount,
                         },
                     );
                 }
-                for (slot_index, leaf) in account_delta.storage().values() {
+                for asset_id in account_patch_vault.removed_asset_ids() {
+                    let asset_id_hex = if asset_id.composition() == AssetComposition::Fungible {
+                        asset_id.faucet_id().prefix().to_hex()
+                    } else {
+                        asset_id.to_word().to_hex()
+                    };
+                    database_account_vault_assets_changes.insert(
+                        format!("{}_{}", account_bech, asset_id_hex),
+                        db::models::DatabaseAccountVaultAsset {
+                            account_vault_asset_id: format!("{}_{}", account_bech, asset_id_hex),
+                            account_bech: account_bech.clone(),
+                            faucet_id_prefix: asset_id.faucet_id().prefix().to_bytes().to_vec(),
+                            amount: 0,
+                        },
+                    );
+                }
+                for (slot_index, value_patch) in account_patch.storage().values() {
                     let slot_name = slot_index.as_str().to_string();
                     let slot_id_hex = slot_index.id().to_string();
                     let account_storage_slot_id = format!("{}_{}", account_bech, slot_id_hex);
-                    let value_bytes = leaf.to_bytes();
+                    // A removed slot has no value; store an empty word.
+                    let value_bytes = value_patch.value().unwrap_or_else(Word::empty).to_bytes();
                     let decoded_payload = storage_decoder::decode_slot(&slot_name, &value_bytes);
                     let database_update_account_storage_slot =
                         db::models::DatabaseAccountStorageSlot {
@@ -184,7 +189,7 @@ pub async fn account_handler(
                         database_update_account_storage_slot,
                     );
                 }
-                for (slot_index, storage_map_delta) in account_delta.storage().maps() {
+                for (slot_index, storage_map_patch) in account_patch.storage().maps() {
                     let slot_name = slot_index.as_str().to_string();
                     let slot_id_hex = slot_index.id().to_string();
                     let account_storage_slot_id = format!("{}_{}", account_bech, slot_id_hex);
@@ -214,21 +219,26 @@ pub async fn account_handler(
                         );
                     }
 
-                    for (storage_slot_map_key, storage_slot_map_value) in
-                        storage_map_delta.entries()
-                    {
+                    // A removed map has no entries to record.
+                    let storage_map_entries = storage_map_patch
+                        .entries()
+                        .map(|entries| entries.as_map().iter())
+                        .into_iter()
+                        .flatten();
+                    for (storage_slot_map_key, storage_slot_map_value) in storage_map_entries {
+                        let storage_slot_map_key_word = Word::from(*storage_slot_map_key);
                         let account_storage_slot_map_id = format!(
                             "{}_{}_{}",
                             account_bech,
                             slot_id_hex,
-                            storage_slot_map_key.to_hex(),
+                            storage_slot_map_key_word.to_hex(),
                         );
                         let database_account_storage_slot_map =
                             db::models::DatabaseAccountStorageSlotMap {
                                 account_storage_slot_map_id: account_storage_slot_map_id.clone(),
                                 account_bech: account_bech.clone(),
                                 slot_index: slot_name.clone(),
-                                key: storage_slot_map_key.as_bytes().to_vec(),
+                                key: storage_slot_map_key_word.as_bytes().to_vec(),
                                 value: storage_slot_map_value.to_bytes(),
                                 last_updated_at_block_number: block.header().block_num().as_u32(),
                                 last_updated_at_account_update_id: account_update_id.clone(),
@@ -251,9 +261,11 @@ pub async fn account_handler(
     }
     db::account::insert_or_ignore_accounts(db_tx, database_accounts).await?;
     db::account_update::insert_account_updates(db_tx, database_account_updates).await?;
-    db::account_vault_asset::insert_or_add_account_vault_assets(
+    db::account_vault_asset::insert_or_set_account_vault_assets(
         db_tx,
-        database_account_vault_assets_changes,
+        database_account_vault_assets_changes
+            .into_values()
+            .collect(),
     )
     .await?;
     db::account_storage_slot::insert_or_merge_account_storage_slots(

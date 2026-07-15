@@ -3,7 +3,7 @@ use super::models;
 use anyhow::Result;
 use sqlx::{types::BigDecimal, QueryBuilder};
 
-pub async fn insert_or_add_account_vault_assets(
+pub async fn insert_or_set_account_vault_assets(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     account_vault_assets_added: Vec<models::DatabaseAccountVaultAsset>,
 ) -> Result<(), sqlx::Error> {
@@ -27,9 +27,10 @@ pub async fn insert_or_add_account_vault_assets(
             .push_bind(BigDecimal::from(account_vault_asset.amount));
     });
 
+    // Patch-based updates (protocol v0.16+) carry absolute amounts, not deltas.
     query_builder.push(
-        " ON CONFLICT (account_vault_asset_id) DO UPDATE SET 
-          amount = account_vault_asset.amount + EXCLUDED.amount",
+        " ON CONFLICT (account_vault_asset_id) DO UPDATE SET
+          amount = EXCLUDED.amount",
     );
 
     let query = query_builder.build();
