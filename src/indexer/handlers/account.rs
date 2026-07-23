@@ -2,8 +2,8 @@ use crate::db;
 use crate::utils;
 use anyhow::Result;
 use miden_protocol::{
-    account::{Account, AccountUpdateDetails},
-    asset::{Asset, AssetComposition},
+    account::{Account, AccountPatch, AccountUpdateDetails},
+    asset::{Asset, AssetComposition, TokenSymbol},
     crypto::utils::Serializable,
     PrettyPrint, Word,
 };
@@ -103,18 +103,25 @@ pub async fn account_handler(
                     }
                     database_account.code_procedure_roots = Some(account_code_procedure_roots);
 
-                    if let Some(fungible_faucet) =
-                        account.and_then(|acc| FungibleFaucet::try_from(acc).ok())
-                    {
-                        let mut db_acc = db::models::DatabaseFungibleFaucetAccount {
-                            account_bech: account_bech.clone(),
-                            faucet_id_prefix: account_id_prefix,
-                            symbol: None,
-                            decimals: Some(fungible_faucet.decimals()),
-                            max_supply: Some(fungible_faucet.max_supply().as_u64()),
-                        };
-                        let token_symbol_str = fungible_faucet.symbol().to_string();
-                        db_acc.symbol = Some(token_symbol_str);
+                    let fungible_faucet_row = account
+                        .and_then(|acc| FungibleFaucet::try_from(acc).ok())
+                        .map(
+                            |fungible_faucet| db::models::DatabaseFungibleFaucetAccount {
+                                account_bech: account_bech.clone(),
+                                faucet_id_prefix: account_id_prefix.clone(),
+                                symbol: Some(fungible_faucet.symbol().to_string()),
+                                decimals: Some(fungible_faucet.decimals()),
+                                max_supply: Some(fungible_faucet.max_supply().as_u64()),
+                            },
+                        )
+                        .or_else(|| {
+                            fallback_fungible_faucet_account(
+                                account_patch,
+                                &account_bech,
+                                &account_id_prefix,
+                            )
+                        });
+                    if let Some(db_acc) = fungible_faucet_row {
                         database_fungible_faucet_accounts.push(db_acc);
                     }
                 }
@@ -291,4 +298,77 @@ pub async fn account_handler(
     .await?;
 
     Ok(())
+}
+
+/// Recovers fungible faucet metadata for faucet accounts whose code does not match the
+/// current standard `FungibleFaucet` component build, e.g. the agglayer bridge faucets,
+/// which were compiled from an older miden-standards revision and therefore fail the
+/// MAST-root interface check inside `FungibleFaucet::try_from`. The `token_config` slot
+/// name and layout are stable across builds, so its presence identifies a fungible
+/// faucet and its word can be decoded directly.
+fn fallback_fungible_faucet_account(
+    account_patch: &AccountPatch,
+    account_bech: &str,
+    account_id_prefix: &[u8],
+) -> Option<db::models::DatabaseFungibleFaucetAccount> {
+    let word = account_patch
+        .storage()
+        .values()
+        .find(|(slot_name, _)| *slot_name == FungibleFaucet::token_config_slot())
+        .and_then(|(_, value_patch)| value_patch.value())?;
+    let (symbol, decimals, max_supply) = decode_token_config(word)?;
+    Some(db::models::DatabaseFungibleFaucetAccount {
+        account_bech: account_bech.to_string(),
+        faucet_id_prefix: account_id_prefix.to_vec(),
+        symbol: Some(symbol),
+        decimals: Some(decimals),
+        max_supply: Some(max_supply),
+    })
+}
+
+/// Decodes the `token_config` word `[token_supply, max_supply, decimals, symbol]` into
+/// `(symbol, decimals, max_supply)`. Returns `None` if the symbol felt or decimals are
+/// not valid, in which case no faucet metadata row is written.
+fn decode_token_config(word: Word) -> Option<(String, u8, u64)> {
+    let [_token_supply, max_supply, decimals, symbol] = *word;
+    let symbol = TokenSymbol::try_from(symbol).ok()?;
+    let decimals = u8::try_from(decimals.as_canonical_u64()).ok()?;
+    Some((symbol.to_string(), decimals, max_supply.as_canonical_u64()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use miden_protocol::Felt;
+
+    #[test]
+    fn decode_token_config_for_agglayer_bridged_eth_faucet() {
+        // Actual on-chain token_config word of the agglayer-bridged ETH faucet
+        // mtst1aqu8zjdwvcgkeug5a67kpwmnsymvmkg0 (Miden testnet, deployed at block
+        // 182748), which FungibleFaucet::try_from rejects due to its older code build:
+        // 0xf3aa40000000000000000080ffffff7f08000000000000008545010000000000
+        let word = Word::new([
+            Felt::new(4_238_067).unwrap(),          // token_supply
+            Felt::new(0x7fffffff80000000).unwrap(), // max_supply
+            Felt::new(8).unwrap(),                  // decimals
+            Felt::new(83_333).unwrap(),             // symbol ("ETH")
+        ]);
+
+        let (symbol, decimals, max_supply) = decode_token_config(word).unwrap();
+        assert_eq!(symbol, "ETH");
+        assert_eq!(decimals, 8);
+        assert_eq!(max_supply, 0x7fffffff80000000);
+    }
+
+    #[test]
+    fn decode_token_config_rejects_invalid_symbol_felt() {
+        let word = Word::new([
+            Felt::new(0).unwrap(),
+            Felt::new(0x7fffffff80000000).unwrap(),
+            Felt::new(8).unwrap(),
+            // 0 is below TokenSymbol::MIN_ENCODED_VALUE
+            Felt::new(0).unwrap(),
+        ]);
+        assert!(decode_token_config(word).is_none());
+    }
 }
