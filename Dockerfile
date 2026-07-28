@@ -1,4 +1,7 @@
-FROM rust:1.97-slim-bookworm AS builder
+# trixie (Debian 13): bookworm left standard security support in June 2026;
+# builder and runtime must stay on the same Debian release so the glibc the
+# binary links against matches the runtime.
+FROM rust:1.97-slim-trixie AS builder
 
 RUN apt-get update && apt-get -y install \
   ca-certificates \
@@ -13,7 +16,7 @@ COPY . .
 
 RUN cargo build --release
 
-FROM debian:12-slim AS runtime
+FROM debian:13-slim AS runtime
 
 WORKDIR /app
 
