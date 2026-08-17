@@ -125,10 +125,6 @@ fn build_standard_components() -> Vec<DatabaseAccountVerifiedComponent> {
             StandardAccountComponent::AuthSingleSig,
         ),
         (
-            AccountComponentInterface::AuthSingleSigAcl,
-            StandardAccountComponent::AuthSingleSigAcl,
-        ),
-        (
             AccountComponentInterface::AuthMultisig,
             StandardAccountComponent::AuthMultisig,
         ),
