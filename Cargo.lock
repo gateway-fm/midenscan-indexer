@@ -2632,9 +2632,9 @@ dependencies = [
 
 [[package]]
 name = "lru"
-version = "0.16.3"
+version = "0.18.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1dc47f592c06f33f8e3aea9591776ec7c9f9e4124778ff8a3c3b87159f7e593"
+checksum = "ff9840bcc50b71349309900da0ce7279aa336ae71d73250b07998932c7d97c25"
 
 [[package]]
 name = "lru-slab"
@@ -3009,8 +3009,8 @@ dependencies = [
 
 [[package]]
 name = "miden-node-grpc-error-macro"
-version = "0.16.0-rc.1"
-source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0-rc.1#7999131c0c9b459322a5cc1d0a9b2b9976ea6de0"
+version = "0.16.0"
+source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0#d6ce8b14d4680e0187b877c1de5c1cdeea16e7e2"
 dependencies = [
  "quote",
  "syn 2.0.110",
@@ -3018,8 +3018,8 @@ dependencies = [
 
 [[package]]
 name = "miden-node-proto"
-version = "0.16.0-rc.1"
-source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0-rc.1#7999131c0c9b459322a5cc1d0a9b2b9976ea6de0"
+version = "0.16.0"
+source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0#d6ce8b14d4680e0187b877c1de5c1cdeea16e7e2"
 dependencies = [
  "anyhow",
  "build-rs",
@@ -3029,6 +3029,7 @@ dependencies = [
  "http",
  "miden-node-grpc-error-macro",
  "miden-node-proto-build",
+ "miden-node-tracing",
  "miden-node-utils",
  "miden-protocol",
  "miden-standards",
@@ -3042,14 +3043,13 @@ dependencies = [
  "tonic-prost",
  "tonic-prost-build",
  "tower 0.5.2",
- "tracing",
  "url",
 ]
 
 [[package]]
 name = "miden-node-proto-build"
-version = "0.16.0-rc.1"
-source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0-rc.1#7999131c0c9b459322a5cc1d0a9b2b9976ea6de0"
+version = "0.16.0"
+source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0#d6ce8b14d4680e0187b877c1de5c1cdeea16e7e2"
 dependencies = [
  "build-rs",
  "codegen",
@@ -3060,9 +3060,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "miden-node-tracing"
+version = "0.16.0"
+source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0#d6ce8b14d4680e0187b877c1de5c1cdeea16e7e2"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "http",
+ "http-body-util",
+ "miden-node-tracing-macro",
+ "miden-protocol",
+ "opentelemetry",
+ "opentelemetry-otlp",
+ "opentelemetry_sdk",
+ "tokio",
+ "tonic 0.14.2",
+ "tower-http",
+ "tower_governor",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "miden-node-tracing-macro"
-version = "0.16.0-rc.1"
-source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0-rc.1#7999131c0c9b459322a5cc1d0a9b2b9976ea6de0"
+version = "0.16.0"
+source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0#d6ce8b14d4680e0187b877c1de5c1cdeea16e7e2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3071,25 +3094,19 @@ dependencies = [
 
 [[package]]
 name = "miden-node-utils"
-version = "0.16.0-rc.1"
-source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0-rc.1#7999131c0c9b459322a5cc1d0a9b2b9976ea6de0"
+version = "0.16.0"
+source = "git+https://github.com/0xMiden/miden-node?tag=v0.16.0#d6ce8b14d4680e0187b877c1de5c1cdeea16e7e2"
 dependencies = [
  "anyhow",
  "backon",
- "bytes",
  "clap",
  "fs-err",
- "governor",
  "http",
- "http-body-util",
  "humantime",
  "itertools 0.14.0",
  "lru",
- "miden-node-tracing-macro",
+ "miden-node-tracing",
  "miden-protocol",
- "opentelemetry",
- "opentelemetry-otlp",
- "opentelemetry_sdk",
  "reqwest",
  "thiserror 2.0.18",
  "tokio",
@@ -3098,9 +3115,6 @@ dependencies = [
  "tower 0.5.2",
  "tower-http",
  "tower_governor",
- "tracing",
- "tracing-opentelemetry",
- "tracing-subscriber",
  "url",
 ]
 
@@ -3192,9 +3206,9 @@ dependencies = [
 
 [[package]]
 name = "miden-protocol"
-version = "0.16.0-rc.4"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e275feebbe9c2458c5877c5f2a03b8e2152831ce956376f015fc4c50acfffb50"
+checksum = "89ccf181d3a4e90b9e6ac107547ce1db30f085dfe5696a7735b1de03ac02f6ba"
 dependencies = [
  "bech32",
  "fs-err",
@@ -3221,9 +3235,9 @@ dependencies = [
 
 [[package]]
 name = "miden-protocol-build-utils"
-version = "0.16.0-rc.5"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05b84ea2b3fddc2e0f652691a8e2c68d0147a5019022556288fb9b0728dc5d62"
+checksum = "9d16cdd96c1d0b3b2d57342d37eaadd15cc7c633bda965fc8c3b23ca249965b4"
 dependencies = [
  "fs-err",
  "miden-assembly",
@@ -3258,9 +3272,9 @@ dependencies = [
 
 [[package]]
 name = "miden-standards"
-version = "0.16.0-rc.4"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d309c7d728eccc884e18ff8bb020656dfaf3547ac2475115bea3a4bdd200c0a9"
+checksum = "ee6fc2cdac6d1bb48ae4b0c2f0498e754490750283783b7a71b25c3017e68754"
 dependencies = [
  "bon",
  "miden-assembly",
@@ -4225,7 +4239,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac6c3320f9abac597dcbc668774ef006702672474aad53c6d596b62e487b40b1"
 dependencies = [
  "heck",
- "itertools 0.10.5",
+ "itertools 0.14.0",
  "log",
  "multimap",
  "once_cell",
@@ -4247,7 +4261,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn 2.0.110",
