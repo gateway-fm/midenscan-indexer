@@ -2,7 +2,7 @@ use super::models;
 
 use anyhow::Result;
 use num_bigint::BigInt;
-use sqlx::{types::BigDecimal, QueryBuilder};
+use sqlx::{types::BigDecimal, QueryBuilder, Row};
 
 pub async fn insert_or_ignore_accounts(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -50,4 +50,55 @@ pub async fn insert_or_ignore_accounts(
     query.execute(&mut **db_tx).await?;
 
     Ok(())
+}
+
+/// A public account indexed before code commitments were recorded.
+#[derive(Debug, Clone)]
+pub struct AccountMissingCodeCommitment {
+    pub account_bech: String,
+    pub account_id: Vec<u8>,
+    pub deployed_at_block_number: u32,
+}
+
+pub async fn select_accounts_missing_code_commitment(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+) -> Result<Vec<AccountMissingCodeCommitment>, sqlx::Error> {
+    let rows = sqlx::query(
+        "SELECT account_bech, account_id, deployed_at_block_number::BIGINT AS deployed_at_block_number
+         FROM account
+         WHERE account_type = 'Public' AND code IS NOT NULL AND code_commitment IS NULL
+         ORDER BY deployed_at_block_number, account_bech",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    rows.iter()
+        .map(|row| {
+            let block_number: i64 = row.try_get("deployed_at_block_number")?;
+            Ok(AccountMissingCodeCommitment {
+                account_bech: row.try_get("account_bech")?,
+                account_id: row.try_get("account_id")?,
+                deployed_at_block_number: u32::try_from(block_number)
+                    .map_err(|e| sqlx::Error::Decode(Box::new(e)))?,
+            })
+        })
+        .collect()
+}
+
+/// Records the code commitment of an account that does not have one yet.
+/// Returns whether a row was updated.
+pub async fn update_account_code_commitment(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    account_bech: &str,
+    code_commitment: &str,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
+        "UPDATE account SET code_commitment = $1 WHERE account_bech = $2 AND code_commitment IS NULL",
+    )
+    .bind(code_commitment)
+    .bind(account_bech)
+    .execute(pool)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
 }
