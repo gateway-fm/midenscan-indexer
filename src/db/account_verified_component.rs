@@ -19,15 +19,13 @@ pub async fn insert_standard_components(
     }
 
     let mut query_builder: QueryBuilder<'_, sqlx::Postgres> = QueryBuilder::new(
-        "INSERT INTO account_verified_component (id, name, procedure_digests, rust, masm, timestamp, is_custom) ",
+        "INSERT INTO account_verified_component (id, name, procedure_digests, timestamp, is_custom) ",
     );
     query_builder.push_values(components, |mut b, component| {
         let procedure_digests = canonicalize_procedure_digests(component.procedure_digests);
         b.push_bind(component.id)
             .push_bind(component.name)
             .push_bind(procedure_digests)
-            .push_bind(component.rust)
-            .push_bind(component.masm)
             .push_bind(component.timestamp)
             .push_bind(component.is_custom);
     });

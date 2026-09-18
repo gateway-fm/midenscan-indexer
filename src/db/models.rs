@@ -35,6 +35,7 @@ pub struct DatabaseAccount {
     pub code: Option<String>,
     pub code_size: u64,
     pub code_procedure_roots: Option<Vec<String>>,
+    pub code_commitment: Option<String>,
 
     pub deployed_at_block_number: u32,
     pub deployed_at_timestamp: u32,
@@ -250,8 +251,6 @@ pub struct DatabaseAccountVerifiedComponent {
     pub id: uuid::Uuid,
     pub name: String,
     pub procedure_digests: Vec<String>,
-    pub rust: Option<String>,
-    pub masm: Option<String>,
     pub timestamp: i64,
     pub is_custom: bool,
 }
@@ -261,8 +260,6 @@ pub struct DatabaseNoteVerifiedScript {
     pub id: uuid::Uuid,
     pub name: String,
     pub script_root: String,
-    pub rust: Option<String>,
-    pub masm: Option<String>,
     pub timestamp: i64,
     pub is_custom: bool,
 }
