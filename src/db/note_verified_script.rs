@@ -19,14 +19,12 @@ pub async fn upsert_standard_notes(
     }
 
     let mut query_builder: QueryBuilder<'_, sqlx::Postgres> = QueryBuilder::new(
-        "INSERT INTO note_verified_script (id, name, script_root, rust, masm, timestamp, is_custom) ",
+        "INSERT INTO note_verified_script (id, name, script_root, timestamp, is_custom) ",
     );
     query_builder.push_values(notes, |mut b, note| {
         b.push_bind(note.id)
             .push_bind(note.name)
             .push_bind(canonicalize_script_root(note.script_root))
-            .push_bind(note.rust)
-            .push_bind(note.masm)
             .push_bind(note.timestamp)
             .push_bind(note.is_custom);
     });

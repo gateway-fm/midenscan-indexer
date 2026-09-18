@@ -46,6 +46,16 @@ make lint     # Run clippy checks
 make release  # Build in release mode
 ```
 
+## Backfilling account code commitments
+
+Accounts indexed before the `code_commitment` column existed can be completed without a reindex:
+
+```bash
+midenscan-indexer backfill-code-commitments
+```
+
+It uses the same environment variables as the indexer, reads each public account's code from its deployment block and only touches rows without a commitment, so it is safe to repeat and to run next to a running indexer.
+
 ## Monitoring
 
 The indexer exposes several helpful endpoints:

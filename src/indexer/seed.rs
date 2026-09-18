@@ -105,8 +105,16 @@ fn build_standard_components() -> Vec<DatabaseAccountVerifiedComponent> {
             StandardAccountComponent::BasicWallet,
         ),
         (
+            AccountComponentInterface::NoteCreator,
+            StandardAccountComponent::NoteCreator,
+        ),
+        (
             AccountComponentInterface::FungibleFaucet,
             StandardAccountComponent::FungibleFaucet,
+        ),
+        (
+            AccountComponentInterface::CodeInspection,
+            StandardAccountComponent::CodeInspection,
         ),
         (
             AccountComponentInterface::Authority,
@@ -165,8 +173,6 @@ fn build_standard_components() -> Vec<DatabaseAccountVerifiedComponent> {
                 id,
                 name,
                 procedure_digests,
-                rust: None,
-                masm: None,
                 timestamp: now,
                 is_custom: false,
             }
@@ -179,8 +185,21 @@ fn build_standard_notes() -> Vec<DatabaseNoteVerifiedScript> {
         StandardNote::P2ID,
         StandardNote::P2IDE,
         StandardNote::SWAP,
+        StandardNote::PSWAP,
         StandardNote::MINT,
         StandardNote::BURN,
+        StandardNote::CONSTANT_FEE_POLICY_CONFIG,
+        StandardNote::FAUCET_POLICY_CONFIG,
+        StandardNote::FAUCET_METADATA_CONFIG,
+        StandardNote::MIN_BURN_AMOUNT_CONFIG,
+        StandardNote::ALLOWLIST_CONFIG,
+        StandardNote::BLOCKLIST_CONFIG,
+        StandardNote::PAUSE_CONFIG,
+        StandardNote::OWNER_CONFIG,
+        StandardNote::RBAC_CONFIG,
+        StandardNote::NETWORK_ACCOUNT_CONFIG,
+        StandardNote::FEE_SPONSORSHIP,
+        StandardNote::TX_FEE,
     ];
 
     let now = std::time::SystemTime::now()
@@ -199,8 +218,6 @@ fn build_standard_notes() -> Vec<DatabaseNoteVerifiedScript> {
                 id,
                 name,
                 script_root,
-                rust: None,
-                masm: None,
                 timestamp: now,
                 is_custom: false,
             }
@@ -210,25 +227,48 @@ fn build_standard_notes() -> Vec<DatabaseNoteVerifiedScript> {
 
 #[cfg(test)]
 mod tests {
-    use super::build_standard_notes;
+    use super::{build_standard_components, build_standard_notes};
     use std::collections::BTreeSet;
+
+    #[test]
+    fn build_standard_components_contains_expected_variants_with_unique_digests() {
+        let components = build_standard_components();
+
+        assert_eq!(components.len(), 13);
+        let names = components
+            .iter()
+            .map(|component| component.name.as_str())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(names.len(), 13);
+
+        let digest_sets = components
+            .iter()
+            .map(|component| component.procedure_digests.iter().collect::<BTreeSet<_>>())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(digest_sets.len(), 13);
+        assert!(components
+            .iter()
+            .all(|component| !component.procedure_digests.is_empty()));
+        assert!(components.iter().all(|component| !component.is_custom));
+    }
 
     #[test]
     fn build_standard_notes_contains_expected_variants_with_unique_roots() {
         let notes = build_standard_notes();
 
-        assert_eq!(notes.len(), 5);
+        assert_eq!(notes.len(), 18);
         let names = notes
             .iter()
             .map(|note| note.name.as_str())
             .collect::<BTreeSet<_>>();
-        assert_eq!(names.len(), 5);
+        assert_eq!(names.len(), 18);
 
         let script_roots = notes
             .iter()
             .map(|note| note.script_root.as_str())
             .collect::<BTreeSet<_>>();
-        assert_eq!(script_roots.len(), 5);
+        assert_eq!(script_roots.len(), 18);
         assert!(script_roots.iter().all(|root| !root.starts_with("0x")));
+        assert!(notes.iter().all(|note| !note.is_custom));
     }
 }

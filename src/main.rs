@@ -15,6 +15,26 @@ async fn main() {
     // If RUST_LOG is not set, default to "info".
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
+    // `midenscan-indexer backfill-code-commitments` runs the one-off backfill instead of
+    // the indexing loop; it uses the same configuration.
+    match std::env::args().nth(1).as_deref() {
+        Some("backfill-code-commitments") => {
+            if let Err(e) = indexer::backfill::backfill_code_commitments().await {
+                log::error!("Backfill failed: {:#}", e);
+                std::process::exit(1);
+            }
+            return;
+        }
+        Some(command) => {
+            eprintln!(
+                "unknown command `{}`; usage: midenscan-indexer [backfill-code-commitments]",
+                command
+            );
+            std::process::exit(2);
+        }
+        None => {}
+    }
+
     // start HTTP server in the background
     tokio::spawn(async move {
         http::server::run().await;

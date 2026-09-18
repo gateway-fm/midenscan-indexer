@@ -53,6 +53,7 @@ pub async fn account_handler(
             account_type: Some(db::models::DatabaseMidenAccountType::Private),
             code: None,
             code_procedure_roots: None,
+            code_commitment: None,
             code_size: 0,
 
             deployed_at_block_number: block.header().block_num().as_u32(),
@@ -102,6 +103,7 @@ pub async fn account_handler(
                             .push(account_code_procedure.mast_root().to_hex());
                     }
                     database_account.code_procedure_roots = Some(account_code_procedure_roots);
+                    database_account.code_commitment = Some(code.commitment().to_hex());
 
                     if let Some(fungible_faucet) =
                         account.and_then(|acc| FungibleFaucet::try_from(acc).ok())
