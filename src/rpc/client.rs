@@ -1,9 +1,7 @@
 use anyhow::Result;
-use miden_node_proto::generated::{
-    blockchain::BlockRequest,
-    rpc::{api_client::ApiClient, RpcStatus},
-};
-use miden_protocol::{block::ProvenBlock, crypto::utils::Deserializable};
+use miden_node_proto::generated::rpc::{api_client::ApiClient, BlockRequest, RpcStatus};
+use miden_node_proto::DecodeMessageExt;
+use miden_protocol::block::SignedBlock;
 use std::time::Duration;
 use tokio::time::timeout;
 
@@ -21,7 +19,7 @@ impl Rpc {
         }
     }
 
-    pub async fn get_block_by_number_with_timeout(&self, block_num: u32) -> Result<ProvenBlock> {
+    pub async fn get_block_by_number_with_timeout(&self, block_num: u32) -> Result<SignedBlock> {
         match timeout(Self::TIMEOUT, self.get_block_by_number(block_num)).await {
             // ───── finished in time ───────────────────────────────────────────
             Ok(Ok(block)) => Ok(block),
@@ -47,7 +45,7 @@ impl Rpc {
         }
     }
 
-    pub async fn get_block_by_number(&self, block_num: u32) -> Result<ProvenBlock> {
+    pub async fn get_block_by_number(&self, block_num: u32) -> Result<SignedBlock> {
         let mut rpc_api = ApiClient::connect(self.rpc_url.clone()).await.unwrap();
 
         let request = BlockRequest {
@@ -56,17 +54,11 @@ impl Rpc {
         };
         let api_response = rpc_api.get_block_by_number(request).await?.into_inner();
 
-        if let Some(block_data) = api_response.block {
-            // Deserialize the block data using miden-objects Deserializer
-            match ProvenBlock::read_from_bytes(&block_data) {
-                Ok(block) => Ok(block),
-                Err(err) => Err(anyhow::anyhow!(format!(
-                    "Could not deserialize block data: {}",
-                    err
-                ))),
-            }
-        } else {
-            Err(crate::rpc::error::RpcError::NotFound(block_num).into())
+        match api_response.block {
+            Some(block) => block
+                .decode_and_build_unchecked()
+                .map_err(|err| anyhow::anyhow!("Could not decode block: {}", err)),
+            None => Err(crate::rpc::error::RpcError::NotFound(block_num).into()),
         }
     }
 
