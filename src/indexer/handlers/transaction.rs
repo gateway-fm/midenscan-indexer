@@ -4,7 +4,7 @@ use anyhow::Result;
 
 pub async fn transaction_handler(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    block: miden_protocol::block::ProvenBlock,
+    block: miden_protocol::block::SignedBlock,
 ) -> Result<()> {
     let mut database_transactions: Vec<db::models::DatabaseTransaction> = Vec::new();
     let mut database_transaction_input_notes: Vec<db::models::DatabaseTransactionInputNote> =

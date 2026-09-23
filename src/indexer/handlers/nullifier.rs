@@ -4,7 +4,7 @@ use anyhow::Result;
 
 pub async fn nullifier_handler(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    block: miden_protocol::block::ProvenBlock,
+    block: miden_protocol::block::SignedBlock,
 ) -> Result<()> {
     let mut database_nullifiers: Vec<db::models::DatabaseNullifier> = Vec::new();
     for (block_nullifier_index_usize, nullifier) in

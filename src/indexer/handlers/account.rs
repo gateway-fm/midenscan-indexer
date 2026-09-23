@@ -3,7 +3,7 @@ use crate::utils;
 use anyhow::Result;
 use miden_protocol::{
     account::{Account, AccountUpdateDetails},
-    asset::{Asset, AssetComposition},
+    asset::AssetComposition,
     crypto::utils::Serializable,
     PrettyPrint, Word,
 };
@@ -14,7 +14,7 @@ use super::storage_decoder;
 
 pub async fn account_handler(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    block: miden_protocol::block::ProvenBlock,
+    block: miden_protocol::block::SignedBlock,
 ) -> Result<()> {
     let mut database_accounts: Vec<db::models::DatabaseAccount> = Vec::new();
     let mut database_account_updates: Vec<db::models::DatabaseAccountUpdate> = Vec::new();
@@ -131,13 +131,13 @@ pub async fn account_handler(
                 let account_patch_vault = account_patch.vault();
                 for asset in account_patch_vault.updated_assets() {
                     let faucet_id_prefix_formatted = asset.faucet_id().prefix().to_bytes().to_vec();
-                    let (asset_id_hex, amount) = match asset {
-                        Asset::Fungible(fungible) => (
+                    let (asset_id_hex, amount) = match asset.as_fungible() {
+                        Some(fungible) => (
                             fungible.faucet_id().prefix().to_hex(),
                             i64::try_from(u64::from(fungible.amount()))?,
                         ),
                         // Non-fungible assets are unique, one row per asset id.
-                        Asset::NonFungible(_) => (asset.id().to_word().to_hex(), 1),
+                        None => (asset.id().to_word().to_hex(), 1),
                     };
                     database_account_vault_assets_changes.insert(
                         format!("{}_{}", account_bech, asset_id_hex),

@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use anyhow::{Context, Result};
 use log::{info, warn};
 use miden_protocol::{
-    account::AccountUpdateDetails, block::ProvenBlock, crypto::utils::Serializable,
+    account::AccountUpdateDetails, block::SignedBlock, crypto::utils::Serializable,
 };
 
 use crate::config::CONFIG;
@@ -86,7 +86,7 @@ pub async fn backfill_code_commitments() -> Result<()> {
 
 /// The code commitment of the given account as recorded in a block, if the block carries
 /// the account's code (its deployment or a code update of a public account).
-fn code_commitment_from_block(block: &ProvenBlock, account_id: &[u8]) -> Option<String> {
+fn code_commitment_from_block(block: &SignedBlock, account_id: &[u8]) -> Option<String> {
     block
         .body()
         .updated_accounts()

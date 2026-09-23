@@ -1,12 +1,7 @@
 use crate::db;
 use crate::utils;
 use anyhow::Result;
-use miden_protocol::{
-    asset::Asset::{Fungible, NonFungible},
-    crypto::utils::Serializable,
-    note::NoteAttachments,
-    transaction::OutputNote,
-};
+use miden_protocol::{crypto::utils::Serializable, note::NoteAttachments, transaction::OutputNote};
 use std::collections::HashMap;
 
 fn normalize_script_root(script_root: String) -> String {
@@ -25,7 +20,7 @@ fn attachments_for(output_note: &OutputNote) -> &NoteAttachments {
 
 pub async fn note_handler(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    block: miden_protocol::block::ProvenBlock,
+    block: miden_protocol::block::SignedBlock,
 ) -> Result<()> {
     let mut database_notes: Vec<db::models::DatabaseNote> = Vec::new();
     let mut database_note_assets: Vec<db::models::DatabaseNoteAsset> = Vec::new();
@@ -108,9 +103,9 @@ pub async fn note_handler(
         if let Some(note_assets) = output_note.assets() {
             for asset in note_assets.iter() {
                 let faucet_id_prefix = asset.faucet_id().prefix().to_bytes().to_vec();
-                let amount: u64 = match asset {
-                    Fungible(asset) => asset.amount().as_u64(),
-                    NonFungible(_) => 1,
+                let amount: u64 = match asset.as_fungible() {
+                    Some(fungible) => u64::from(fungible.amount()),
+                    None => 1,
                 };
                 database_note_assets.push(db::models::DatabaseNoteAsset {
                     note_asset_id: format!(
