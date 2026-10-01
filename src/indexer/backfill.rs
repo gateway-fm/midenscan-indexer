@@ -93,9 +93,10 @@ fn code_commitment_from_block(block: &SignedBlock, account_id: &[u8]) -> Option<
         .iter()
         .find(|updated_account| updated_account.account_id().to_bytes() == account_id)
         .and_then(|updated_account| match updated_account.details() {
-            AccountUpdateDetails::Public(account_patch) => {
-                account_patch.code().map(|code| code.commitment().to_hex())
-            }
+            AccountUpdateDetails::Public(account_patch) => account_patch
+                .code()
+                .as_code()
+                .map(|code| code.commitment().to_hex()),
             AccountUpdateDetails::Private => None,
         })
 }

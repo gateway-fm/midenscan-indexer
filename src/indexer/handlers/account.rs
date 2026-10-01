@@ -2,9 +2,7 @@ use crate::db;
 use crate::utils;
 use anyhow::Result;
 use miden_protocol::{
-    account::{Account, AccountUpdateDetails},
-    asset::AssetComposition,
-    crypto::utils::Serializable,
+    account::AccountUpdateDetails, asset::AssetComposition, crypto::utils::Serializable,
     PrettyPrint, Word,
 };
 use miden_standards::account::faucets::FungibleFaucet;
@@ -85,9 +83,9 @@ pub async fn account_handler(
 
         match updated_account.details() {
             AccountUpdateDetails::Public(account_patch) => {
-                if let Some(code) = account_patch.code() {
-                    // new account
-                    let account = Account::try_from(account_patch).ok();
+                // Code is present for new accounts and for code upgrades.
+                if let Some(code) = account_patch.code().as_code() {
+                    let account = account_patch.try_to_new_account().ok();
 
                     database_account.account_type =
                         Some(db::models::DatabaseMidenAccountType::from(
@@ -261,7 +259,7 @@ pub async fn account_handler(
         database_accounts.push(database_account);
         database_account_updates.push(database_account_update);
     }
-    db::account::insert_or_ignore_accounts(db_tx, database_accounts).await?;
+    db::account::insert_accounts_or_update_code(db_tx, database_accounts).await?;
     db::account_update::insert_account_updates(db_tx, database_account_updates).await?;
     db::account_vault_asset::insert_or_set_account_vault_assets(
         db_tx,

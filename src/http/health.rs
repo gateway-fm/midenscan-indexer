@@ -59,7 +59,7 @@ async fn check_rpc() -> ComponentStatus {
     // Try to establish a gRPC connection within a short timeout
     let result = tokio::time::timeout(
         Duration::from_secs(2),
-        miden_node_proto::generated::rpc::api_client::ApiClient::connect(CONFIG.rpc_url.clone()),
+        miden_node_proto::generated::miden::node::v1::node_service_client::NodeServiceClient::connect(CONFIG.rpc_url.clone()),
     )
     .await
     .map_err(|_| anyhow::anyhow!("rpc connect timeout"))
