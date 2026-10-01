@@ -4,7 +4,9 @@ use anyhow::Result;
 use num_bigint::BigInt;
 use sqlx::{types::BigDecimal, QueryBuilder, Row};
 
-pub async fn insert_or_ignore_accounts(
+/// Inserts new accounts. For existing accounts only the code fields are refreshed, and only when
+/// the update carries code (a code upgrade); deploy-time fields are never overwritten.
+pub async fn insert_accounts_or_update_code(
     db_tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     accounts: Vec<models::DatabaseAccount>,
 ) -> Result<(), sqlx::Error> {
@@ -12,7 +14,16 @@ pub async fn insert_or_ignore_accounts(
         return Ok(());
     }
 
-    let mut query_builder: QueryBuilder<'_, sqlx::Postgres> = QueryBuilder::new(
+    let mut query_builder = build_insert_accounts_query(accounts);
+    query_builder.build().execute(&mut **db_tx).await?;
+
+    Ok(())
+}
+
+fn build_insert_accounts_query(
+    accounts: Vec<models::DatabaseAccount>,
+) -> QueryBuilder<'static, sqlx::Postgres> {
+    let mut query_builder: QueryBuilder<'static, sqlx::Postgres> = QueryBuilder::new(
         "INSERT INTO account (
                 account_bech,
                 account_id,
@@ -44,12 +55,16 @@ pub async fn insert_or_ignore_accounts(
                 account.deployed_at_internal_time,
             )));
     });
-    query_builder.push(" ON CONFLICT (account_bech) DO NOTHING");
+    query_builder.push(
+        " ON CONFLICT (account_bech) DO UPDATE SET
+                code = EXCLUDED.code,
+                code_size = EXCLUDED.code_size,
+                code_procedure_roots = EXCLUDED.code_procedure_roots,
+                code_commitment = EXCLUDED.code_commitment
+            WHERE EXCLUDED.code IS NOT NULL",
+    );
 
-    let query = query_builder.build();
-    query.execute(&mut **db_tx).await?;
-
-    Ok(())
+    query_builder
 }
 
 /// A public account indexed before code commitments were recorded.
@@ -101,4 +116,37 @@ pub async fn update_account_code_commitment(
     .await?;
 
     Ok(result.rows_affected() > 0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{build_insert_accounts_query, models};
+
+    fn account(code: Option<&str>) -> models::DatabaseAccount {
+        models::DatabaseAccount {
+            account_bech: "acc".to_string(),
+            account_id: vec![1],
+            account_id_prefix: vec![1],
+            account_type: None,
+            code: code.map(str::to_string),
+            code_procedure_roots: None,
+            code_commitment: None,
+            code_size: 0,
+            deployed_at_block_number: 1,
+            deployed_at_timestamp: 1,
+            deployed_at_updated_account_index: 0,
+            deployed_at_internal_time: 0,
+        }
+    }
+
+    #[test]
+    fn upgrade_refreshes_code_but_keeps_deploy_fields() {
+        let builder = build_insert_accounts_query(vec![account(Some("code"))]);
+        let (_, on_conflict) = builder.sql().split_once("ON CONFLICT").unwrap();
+
+        assert!(on_conflict.contains("code_commitment = EXCLUDED.code_commitment"));
+        assert!(on_conflict.contains("WHERE EXCLUDED.code IS NOT NULL"));
+        assert!(!on_conflict.contains("deployed_at"));
+        assert!(!on_conflict.contains("account_type"));
+    }
 }

@@ -1,5 +1,8 @@
 use anyhow::Result;
-use miden_node_proto::generated::rpc::{api_client::ApiClient, BlockRequest, RpcStatus};
+use miden_node_proto::generated::miden::node::v1::{
+    node_service_client::NodeServiceClient as ApiClient, GetBlockByNumberRequest as BlockRequest,
+    StatusRequest, StatusResponse as RpcStatus,
+};
 use miden_node_proto::DecodeMessageExt;
 use miden_protocol::block::SignedBlock;
 use std::time::Duration;
@@ -65,7 +68,7 @@ impl Rpc {
     pub async fn get_status(&self) -> Result<RpcStatus> {
         let mut rpc_api = ApiClient::connect(self.rpc_url.clone()).await.unwrap();
 
-        let api_response = rpc_api.status(()).await;
+        let api_response = rpc_api.status(StatusRequest {}).await;
         match api_response {
             Ok(status) => Ok(status.into_inner()),
             Err(err) => Err(anyhow::anyhow!(format!(
