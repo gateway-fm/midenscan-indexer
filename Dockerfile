@@ -3,12 +3,16 @@
 # binary links against matches the runtime.
 FROM rust:1.98.1-slim-trixie AS builder
 
+# clang/libclang-dev: miden-node-proto 0.18 pulls in RocksDB (via
+# miden-node-utils -> miden-crypto "rocksdb"), whose bindings need libclang.
 RUN apt-get update && apt-get -y install \
   ca-certificates \
   build-essential \
   pkg-config \
   libssl-dev \
-  protobuf-compiler && \
+  protobuf-compiler \
+  clang \
+  libclang-dev && \
   update-ca-certificates
 
 WORKDIR /app  
