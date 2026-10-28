@@ -92,7 +92,10 @@ pub async fn account_handler(
                             account_patch.id().account_type(),
                         ));
 
-                    database_account.code = Some(format!("{}", PrettyPrint::render(code)));
+                    database_account.code = Some(utils::format::render_bounded(
+                        &PrettyPrint::render(code),
+                        utils::format::MAX_RENDERED_CODE_BYTES,
+                    ));
                     database_account.code_size = code.get_size_hint() as u64;
 
                     let mut account_code_procedure_roots: Vec<String> = Vec::new();

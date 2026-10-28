@@ -68,7 +68,10 @@ pub async fn note_handler(
             let note = public_note.as_note();
             database_note.nullifier = Some(note.nullifier().as_bytes().to_vec());
             database_note.script_root = Some(normalize_script_root(note.script().root().to_hex()));
-            let script_code = format!("{}", note.script());
+            let script_code = utils::format::render_bounded(
+                note.script(),
+                utils::format::MAX_RENDERED_CODE_BYTES,
+            );
             database_note.script_code = Some(script_code);
             database_note.inputs = Some(
                 note.recipient()
